@@ -1,0 +1,10 @@
+{
+  "name": "parse-labels",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^2.16.0",
+    "csv-parse": "^2.5.0"
+  }
+}
