@@ -1,2 +1,2 @@
 @echo off
-node ../utils/parse-labels/src/app.js %*
+node %~dp0/../src/parse-labels/app.js %*
