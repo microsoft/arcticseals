@@ -140,22 +140,92 @@ const printStats = (stats) => {
     console.log(`Species types:`);
     for (let speciesType of stats.speciesTypes.keys()) {
         console.log(`  ${speciesType}: ${stats.speciesTypes.get(speciesType)}`);
-    } 
+    }
+};
+
+const getCsvRecords = (filename) => {
+    let input = fs.readFileSync(filename).toString();
+    return parse(input, {columns: true});
+};
+
+const getCsvStats = (records) => {
+    let stats = initRecordStats();
+    for (let r of records) {
+        examineRecord(r, stats);
+    }
+    return stats;
+};
+
+const getRandomIndices = (num, max) => {
+    let indices = new Set();
+    for (let i = 0; i < num; i++) {
+        let index;
+        do {
+            index = Math.floor(Math.random() * max);
+        } while(indices.has(index));
+        indices.add(index);
+    }
+    return indices;
+}
+
+const getThermal16ImageFilesFromIndices = (stats, indices) => {
+    let imageFiles = new Set();
+    let i = 0;
+    for (let imageFile of stats.thermal16Stats.uniqueImages) {
+        if (indices.has(i++)) {
+            imageFiles.add(imageFile);
+        }
+    }
+    return imageFiles;
+}
+
+const writeCsvHeader = (writer) => {
+    writer.write('"hotspot_id","timestamp","filt_thermal16","filt_thermal8","filt_color","x_pos","y_pos","thumb_left","thumb_top","thumb_right","thumb_bottom","hotspot_type","species_id"\r\n');
+};
+
+const writeCsvRecord = (writer, r) => {
+    writer.write(`"${r.hotspot_id}","${r.timestamp}","${r.filt_thermal16}","${r.filt_thermal8}","${r.filt_color}",${r.x_pos},${r.y_pos},${r.thumb_left},${r.thumb_top},${r.thumb_right},${r.thumb_bottom},"${r.hotspot_type}","${r.species_id}"\r\n`);
 };
 
 program
-    .option('-f, --file [filename]', 'CSV file of CHESS label data')
-    .parse(process.argv);
+    .option('-f, --file [filename]', 'Input CSV file of CHESS label data')
+    .option('-n, --num [records]', '[split command] Number of thermal images to include in first label set')
+    .option('-a, --output1 [filename]', '[split command] First output file name')
+    .option('-b, --output2 [filename]', '[split command] Second output file name')
+
+program
+    .command('stats')
+    .description('Show label stats')
+    .action(() => {
+        let records = getCsvRecords(program.file);
+        let stats = getCsvStats(records);
+        printStats(stats);
+    });
+
+program
+    .command('split')
+    .description('Split labels into two disjoint sets')
+    .action(() => {
+        let records = getCsvRecords(program.file);
+        let stats = getCsvStats(records);
+        let indices = getRandomIndices(parseInt(program.num), stats.thermal16Stats.uniqueImages.size);
+        let imageFiles = getThermal16ImageFilesFromIndices(stats, indices);
+        let writer1 = fs.createWriteStream(program.output1);
+        let writer2 = fs.createWriteStream(program.output2);
+        writeCsvHeader(writer1);
+        writeCsvHeader(writer2);
+        for (let r of records) {
+            writeCsvRecord(imageFiles.has(r.filt_thermal16) ? writer1 : writer2, r);
+        }
+    });
+
+program.on('--help', () => {
+    console.log('');
+});
+
+program.parse(process.argv);
 
 if (!program.file) {
-    program.outputHelp();
+    program.help();
     process.exit();
 }
-
-let input = fs.readFileSync(program.file).toString();
-let records = parse(input, {columns: true});
-let stats = initRecordStats();
-for (let r of records) {
-    examineRecord(r, stats);
-}
-printStats(stats);
