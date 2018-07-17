@@ -29,7 +29,31 @@ In Windows, you can easily mount these as drives on your machine by double-click
 
 However, if you are going to do any bulk operations it's more efficient to download the virtual disks.
 
-All of the labeled datasets refer to files in this first dataset (ArcticSealsData01). We are also getting additional unlabeled data from NOAA that will be in ArcticSealsDataXX.
+All of the labeled data refers to files in this first dataset (ArcticSealsData01).
+
+We also have the following additional raw, less-curated data (unlike ArcticSealsData01, these datasets contain potentially overlapping thermal images) covering the following survey dates:
+
+* ArcticSealsData02: April 7, 2016
+* ArcticSealsData03: April 8, 2016
+* ArcticSealsData04: April 9, 2016
+* ArcticSealsData05: April 10, 2016
+* ArcticSealsData06: April 13, 2016
+* ArcticSealsData07: April 14, 2016
+
+The color data is here:
+
+* https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData02_Color.vhdx (89.1GB)
+* https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData03_Color.vhdx (272.2GB)
+* https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData04_Color.vhdx (657.0GB)
+* https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData05_Color.vhdx (626.8GB)
+* https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData06_Color.vhdx (535.7GB)
+* https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData07_Color.vhdx (218.8GB)
+
+The thermal data, since it's relatively small, has been combined into a single virtual disk:
+
+* https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData02-07_Thermal.vhdx (31.3GB)
+
+Note that the timestamp pattern embedded in the filenames has two forms in ArcticSealsData02 and higher - you may see, for example, either `160408_020848.724` or `20160408020848.724GMT`.
 
 Finally, if you want to use [Azure Storage Explorer](https://azure.microsoft.com/en-us/features/storage-explorer) (for example) to access the entire blob container, use this connection string:
 
