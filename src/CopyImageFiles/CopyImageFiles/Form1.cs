@@ -47,7 +47,7 @@ namespace CopyImageFiles
 		{
 			// Two possible formats, e.g.:
 			// 160408_020848.724
-			// 20160408235502.543GMT
+			// 20160408020848.724GMT
 			if (s.Length == 17)
 			{
 				try
