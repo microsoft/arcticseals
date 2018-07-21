@@ -1,0 +1,71 @@
+# Environment
+
+	These instructions are for an ubuntu DSVM.
+
+
+# Get the docker image and code
+
+	git clone https://github.com/Microsoft/arcticseals.git
+    cd arcticseals/src/SealDetectionRCNN
+
+
+# Download data
+
+	Download the file sample_dataset_for_detection.zip from the Teams channel, under the Files tab or use the URL
+
+    https://microsoft.sharepoint.com/teams/ArcticSealsHackathon2018/Shared%20Documents/General/sample_dataset_for_detection.zip
+	
+	I'll assume in this tutorial that you unzipped this file to /data/sealdata  In the next days, we will upload the
+    complete dataset with all seals.
+	
+	
+# Build the Docker image
+
+	cd SealDetection/docker 
+	sudo docker build -t sealdetection .
+	
+## If you get a build error…
+	
+	I had an image that didn't work for me on Ubuntu 16, so I followed the steps here:
+	
+		https://docs.docker.com/install/linux/docker-ce/ubuntu/#install-docker-ce
+			
+	…to update docker.
+	
+	
+# Run the image with an interactive shell, mounting your data and code directories
+	
+	This assumes you've put the data in /data/sealdata, and that you're currently in the repo directory.
+	
+		sudo nvidia-docker run -it -v /data/sealdata:/datadrive -v $(pwd):/code --ipc=host -p 8097:8097 sealdetection
+
+
+# Download the base (vgg16) model file
+	
+	python misc/convert_caffe_pretrain.py && mv vgg16_caffe.pth data/
+	
+
+# Run the code 
+	First run the visdom server, which visualizes the training progress:
+	
+		nohup python -m visdom.server &
+
+	Then run the actual training with    
+	
+		./run_training.sh
+	
+	…I actually run it as the following, to open a logfile:
+	
+		./run_training.sh 2>&1 | tee ~/logfile.txt
+	
+	For better speed, you can run the following command **while being inside docker**:
+
+		conda install cython && cd model/utils/nms/ && python3 build.py build_ext --inplace
+
+# Options
+
+	Default options are in:
+	
+		utils/config.py
+		
+	Some options are overridden in the driver script (run_training.sh).
