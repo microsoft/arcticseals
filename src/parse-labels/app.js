@@ -4,6 +4,8 @@ let fs = require('fs');
 let program = require('commander');
 let parse = require('csv-parse/lib/sync');
 
+let images = require('./images');
+
 const parseTimestamp = (t) => {
     // Example: '20160407235833.627GMT'
     if (t.length != 21 || t.slice(18, 21) != 'GMT') {
@@ -143,9 +145,12 @@ const printStats = (stats) => {
     }
 };
 
-const getCsvRecords = (filename) => {
+const getCsvRecords = (filename, filters) => {
     let input = fs.readFileSync(filename).toString();
-    return parse(input, {columns: true});
+    let records = parse(input, {columns: true});
+    return records.filter((record) => {
+        return !filters || filters.every((filter) => filter(record));
+    });
 };
 
 const getCsvStats = (records) => {
@@ -188,30 +193,27 @@ const writeCsvRecord = (writer, r) => {
 };
 
 program
-    .option('-f, --file [filename]', 'Input CSV file of CHESS label data')
-    .option('-n, --num [records]', '[split command] Number of thermal images to include in first label set')
-    .option('-a, --output1 [filename]', '[split command] First output file name')
-    .option('-b, --output2 [filename]', '[split command] Second output file name')
-
-program
-    .command('stats')
+    .command('stats <file>')
     .description('Show label stats')
-    .action(() => {
-        let records = getCsvRecords(program.file);
+    .action((file) => {
+        let records = getCsvRecords(file);
         let stats = getCsvStats(records);
         printStats(stats);
     });
 
 program
-    .command('split')
+    .command('split <file>')
+    .option('-n, --num <images>')
+    .option('-a, --output1 <filename>')
+    .option('-b, --output2 <filename>')
     .description('Split labels into two disjoint sets')
-    .action(() => {
-        let records = getCsvRecords(program.file);
+    .action((file, command) => {
+        let records = getCsvRecords(file);
         let stats = getCsvStats(records);
-        let indices = getRandomIndices(parseInt(program.num), stats.thermal16Stats.uniqueImages.size);
+        let indices = getRandomIndices(parseInt(command.num), stats.thermal16Stats.uniqueImages.size);
         let imageFiles = getThermal16ImageFilesFromIndices(stats, indices);
-        let writer1 = fs.createWriteStream(program.output1);
-        let writer2 = fs.createWriteStream(program.output2);
+        let writer1 = fs.createWriteStream(command.output1);
+        let writer2 = fs.createWriteStream(command.output2);
         writeCsvHeader(writer1);
         writeCsvHeader(writer2);
         for (let r of records) {
@@ -219,13 +221,63 @@ program
         }
     });
 
+const parseFilters = (filters) => {
+    if (!filters)
+        return [];
+    return filters.split(',').map((filter) => {
+        let split = filter.split('=');
+        let field = split[0];
+        let value = split[1];
+        return (record) => {
+            return record[field] === value; 
+        };
+    });
+};
+
+program
+    .command('prep <file>')
+    .option('-f, --filters <conditions>')
+    .option('-i, --imgdirs <dirs>')
+    .option('-t, --imgtype <type>')
+    .option('-n, --num <images>')
+    .option('-b, --bboxes')
+    .option('-f, --format <format>')
+    .option('-o, --outdir <dir>')
+    .description('Prepare label and image data for training')
+    .action((file, command) => {
+        if (!command.imgtype) {
+            command.imgtype = 'thermal';
+        }
+        let imageMap = images.getImageMap(command.imgdirs.split(','), command.imgtype);
+        let filters = parseFilters(command.filters);
+        filters.push((record) => {
+            return imageMap.has(record[command.imgtype == 'thermal' ? 'filt_thermal16' : 'filt_color']);
+        });
+        let records = getCsvRecords(file, filters);
+        let stats = getCsvStats(records);
+        printStats(stats);
+    });
+
 program.on('--help', () => {
+    console.log('');
+    console.log('For all commands, <file> is a CSV file of CHESS label data.');
+    console.log('');
+    console.log('split options:');
+    console.log('');
+    console.log('    -n, --num [images]         Number of thermal images to include in first label set');
+    console.log('    -a, --output1 [filename]   First output file name');
+    console.log('    -b, --output2 [filename]   Second output file name');
+    console.log('');
+    console.log('prep options:');
+    console.log('');
+    console.log('    -n, --num [images]         Number of thermal images to randomly select for inclusion');
+    console.log('    -i, --imgdirs [dirs]       Comma-separated list of file paths containing images');
+    console.log('    -f, --filters [conditions] Comma-separated list of filter conditions, e.g. hotspot_type=Animal');
     console.log('');
 });
 
 program.parse(process.argv);
 
-if (!program.file) {
-    program.help();
-    process.exit();
+if (!process.argv.slice(2).length) {
+    program.outputHelp();
 }
