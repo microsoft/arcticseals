@@ -435,3 +435,6 @@ ASALocalRun/
 
 # MFractors (Xamarin productivity tool) working folder
 .mfractor/
+
+# Top level temp folder for scratch stuff
+/temp/
