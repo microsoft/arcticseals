@@ -63,8 +63,9 @@ First run the visdom server, which visualizes the training progress:
 	
     nohup python -m visdom.server &
 
-Then run the actual training with    
-	
+Then run the actual training from the "SealDetectionRCNN" directory with:
+
+    chmod a+x ./run_training.sh
     ./run_training.sh
 
 …I actually run it as the following, to open a logfile:
