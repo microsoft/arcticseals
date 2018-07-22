@@ -73,9 +73,9 @@ You are welcome to add whatever code you like to this repo, but please follow th
 
 * Put your source code in its own directory inside the `src` directory.
 * Add a `README.md` file to your code directory explaining what your code does and how it works.
-* If there are dependencies that need to be installed and/or build steps that need to be performed, add any necessary code to the `scripts\build.bat` script to run the relevant package manager commands, compile steps, etc., to ensure your code is fully runnable locally.
+* If there are dependencies that need to be installed and/or build steps that need to be performed, add any necessary code to the `build.bat` script to run the relevant package manager commands, compile steps, etc., to ensure your code is fully runnable locally.
     * Alternatively, it is also ok if your code only builds from within an IDE; if so just make a note of that in your `README.md`.
-* If applicable, add a script to the `scripts` directory that runs your code. If it takes command line arguments, please show help text if it is run without arguments.
+* If applicable, add a script that runs your code to the root directory. If it takes command line arguments, please show help text if it is run without arguments.
 
 # Contributing
 
