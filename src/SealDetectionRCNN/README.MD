@@ -43,16 +43,14 @@ This assumes you've put the data in /data/sealdata, and that you're currently in
 
 # Download the base (vgg16) model file
 
-    cd ..
-
-    // That is, you want to run the following in the "SealDetectionRCNN" directory
+    // You want to run the following in the "SealDetectionRCNN" directory.
 
     python misc/convert_caffe_pretrain.py && mv vgg16_caffe.pth data/
 
 
 # Build some native components
 
-Improves performance, not strictly necessary.
+Improves performance, not strictly necessary.  Run from the "SealDetectionRCNN" directory.
 
     conda install cython && cd model/utils/nms/ && python3 build.py build_ext --inplace
 
