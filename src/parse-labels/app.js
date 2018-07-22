@@ -5,7 +5,7 @@ let path = require('path');
 let os = require('os');
 let program = require('commander');
 let parse = require('csv-parse/lib/sync');
-let readline = require('readline').createInterface(process.stdin, process.stdout);
+let readline = require('readline');
 
 let imageUtil = require('./image-util');
 
@@ -196,7 +196,7 @@ const getRandomIndices = (num, max) => {
 const getThermal16ImagesFromIndices = (stats, indices) => {
     let images = new Set();
     let i = 0;
-    for (let image of stats.thermal16Stats.uniqueImages) {
+    for (let image of stats.thermal16Stats.uniqueImages.keys()) {
         if (indices.has(i++)) {
             images.add(image);
         }
@@ -216,7 +216,8 @@ program
     .command('stats <file>')
     .description('Show label stats')
     .action((file) => {
-        let records = getCsvRecords(file);
+        let filters = parseFilters(program.filters);
+        let records = getCsvRecords(file, filters);
         let stats = getCsvStats(records);
         printStats(stats);
     });
@@ -228,7 +229,8 @@ program
     .option('-b, --output2 <filename>')
     .description('Split labels into two disjoint sets')
     .action((file, command) => {
-        let records = getCsvRecords(file);
+        let filters = parseFilters(program.filters);
+        let records = getCsvRecords(file, filters);
         let stats = getCsvStats(records);
         let indices = getRandomIndices(parseInt(command.num), stats.thermal16Stats.uniqueImages.size);
         let images1 = getThermal16ImagesFromIndices(stats, indices);
@@ -256,7 +258,6 @@ const parseFilters = (filters) => {
 
 program
     .command('prep <file>')
-    .option('-f, --filters <conditions>')
     .option('-i, --imgdirs <dirs>')
     .option('-t, --imgtype <type>')
     .option('-n, --num <images>')
@@ -268,18 +269,32 @@ program
             command.imgtype = 'thermal';
         }
         let imageMap = imageUtil.getImageMap(command.imgdirs.split(','), command.imgtype);
-        let filters = parseFilters(command.filters);
+        let filters = parseFilters(program.filters);
+        let imagesNotFound = 0;
         filters.push((record) => {
-            return imageMap.has(record[command.imgtype == 'thermal' ? 'filt_thermal16' : 'filt_color']);
+            if (imageMap.has(record[command.imgtype == 'thermal' ? 'filt_thermal16' : 'filt_color'])) {
+                return true;
+            }
+            imagesNotFound++;
+            return false;
         });
         let records = getCsvRecords(file, filters);
         if (command.num) {
             records = records.slice(0, parseInt(command.num) + 1);
         }
         let stats = getCsvStats(records);
-        let images = Array.from(stats.thermal16Stats.uniqueImages.keys());
-        readline.question(`About to copy ${images.length} images to ${command.outdir}, are you sure? [y/n] `, (answer) => {
-            readline.close();
+        let images;
+        if (command.imgtype == 'thermal') {
+            images = Array.from(stats.thermal16Stats.uniqueImages.keys());
+        } else {
+            images = Array.from(stats.colorStats.uniqueImages.keys());
+        }
+        let prompt = readline.createInterface(process.stdin, process.stdout);
+        if (imagesNotFound > 0) {
+            console.log(`Warning: ${imagesNotFound} were not found`);
+        }
+        prompt.question(`About to copy ${images.length} images to ${command.outdir}, are you sure? [y/n] `, (answer) => {
+            prompt.close();
             if (answer !== 'y') {
                 return;
             }
@@ -304,19 +319,23 @@ program.on('--help', () => {
     console.log('');
     console.log('split options:');
     console.log('');
-    console.log('    -n, --num [images]         Number of thermal images to include in first label set');
-    console.log('    -a, --output1 [filename]   First output file name');
-    console.log('    -b, --output2 [filename]   Second output file name');
+    console.log('    -n, --num <images>         Number of thermal images to include in first label set');
+    console.log('    -a, --output1 <filename>   First output file name');
+    console.log('    -b, --output2 <filename>   Second output file name');
     console.log('');
     console.log('prep options:');
     console.log('');
-    console.log('    -n, --num [images]         Number of thermal images to randomly select for inclusion');
-    console.log('    -i, --imgdirs [dirs]       Comma-separated list of file paths containing images');
-    console.log('    -f, --filters [conditions] Comma-separated list of filter conditions, e.g. hotspot_type=Animal');
+    console.log('    -i, --imgdirs <dirs>       Comma-separated list of file paths containing images');
+    console.log('    -t, --imgtype <type>       "thermal" or "color" (defaults to "thermal")');
+    console.log('    -n, --num <images>         Number of thermal images to (non-randomly) select for inclusion');
+    console.log('    -b, --bboxes               Whether to output .bboxes[.labels].tsv files next to images');
+    console.log('    -o, --outdir <dir>         Destination for output files');
     console.log('');
 });
 
-program.parse(process.argv);
+program
+    .option('-f, --filters <conditions>', 'Comma-separated list of filter conditions, e.g. hotspot_type=Animal')
+    .parse(process.argv);
 
 if (!process.argv.slice(2).length) {
     program.outputHelp();
