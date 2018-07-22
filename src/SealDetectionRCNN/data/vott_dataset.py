@@ -60,7 +60,7 @@ class VottBboxDataset:
         # set up the filenames and annotations
         old_dir = os.getcwd()
         os.chdir(root)
-        self.impaths = sorted(glob.glob('*.JPG'))
+        self.impaths = sorted(glob.glob('*.PNG'))
         print('Found {} images'.format(len(self.impaths)))
         self.image_ids = list(range(len(self.impaths)))
         
@@ -108,18 +108,29 @@ class VottBboxDataset:
         import sys
         from tqdm import tqdm
         try:
+            # For each image in the data set...
             for idx in tqdm(range(len(self.image_ids))):
                 img_file = os.path.join(self.root, self.impaths[idx])
                 width,height = PIL.Image.open(img_file).size
-                for bbox in self.bboxes[idx]:
-                    assert bbox[1] <= width 
-                    assert bbox[3] <= width
-                    assert bbox[0] <= height
-                    assert bbox[2] <= height
+                
+                # For each bounding box on this image...
+                for iBox,bbox in enumerate(self.bboxes[idx]):
+                    
+                    # Clip everything to be >= 0
+                    bbox = [0 if i < 0 else i for i in bbox]
+                    
+                    # Clip coordinates to be inside the image
+                    bbox[1] = min(bbox[1],width)
+                    bbox[3] = min(bbox[3],width)
+                    bbox[0] = min(bbox[0],height)
+                    bbox[2] = min(bbox[2],height)
+                    
+                    # Make sure bounding boxes are non-zero area
                     assert bbox[3] > bbox[1]
                     assert bbox[2] > bbox[0]
-                    # Make sure all are greater equal 0
-                    assert np.all(np.array(bbox) >= 0)
+                    
+                    self.bboxes[idx][iBox] = bbox
+
         except:
             extype, value, tb = sys.exc_info()
             traceback.print_exc()
