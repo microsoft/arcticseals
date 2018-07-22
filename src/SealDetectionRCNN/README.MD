@@ -69,6 +69,7 @@ Then run the actual training with
 	
     ./run_training.sh 2>&1 | tee ~/logfile.txt
 	
+
 # Options
 
 Default options are in:
