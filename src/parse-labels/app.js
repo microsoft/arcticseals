@@ -1,10 +1,13 @@
 'use strict';
 
 let fs = require('fs');
+let path = require('path');
+let os = require('os');
 let program = require('commander');
 let parse = require('csv-parse/lib/sync');
+let readline = require('readline').createInterface(process.stdin, process.stdout);
 
-let images = require('./images');
+let imageUtil = require('./image-util');
 
 const parseTimestamp = (t) => {
     // Example: '20160407235833.627GMT'
@@ -38,7 +41,7 @@ const parseFilename = (f) => {
 
 const initImageFileStats = () => {
     return {
-        uniqueImages: new Set(),
+        uniqueImages: new Map(), // Image name to image info 
         timestampVariations: 0,
         sumTimestampVariationMs: 0,
         maxTimestampVariationMs: 0
@@ -72,7 +75,9 @@ const updateImageFileStats = (timestamp, f, imageStats) => {
     if (!info.timestamp) {
         return false;
     }
-    imageStats.uniqueImages.add(f);
+    if (!imageStats.uniqueImages.has(f)) {
+        imageStats.uniqueImages.set(f, { bboxes: [] });
+    }
     if (info.timestamp.valueOf() != timestamp.valueOf()) {
         imageStats.timestampVariations++;
         let variation = Math.abs(info.timestamp.valueOf() - timestamp.valueOf());
@@ -106,6 +111,21 @@ const examineRecord = (r, stats) => {
         stats.errors++;
         return;
     }
+    const margin = 10; // Thermal bounding box margin
+    stats.thermal16Stats.uniqueImages.get(r.filt_thermal16).bboxes.push({
+        label: r.hotspot_type,
+        left: parseInt(r.x_pos) - margin,
+        top: parseInt(r.y_pos) - margin,
+        right: parseInt(r.x_pos) + margin,
+        bottom: parseInt(r.y_pos) + margin
+    });
+    stats.colorStats.uniqueImages.get(r.filt_color).bboxes.push({
+        label: `${r.hotspot_type} (${r.species_id})`,
+        left: parseInt(r.thumb_left),
+        top: parseInt(r.thumb_top),
+        right: parseInt(r.thumb_right),
+        bottom: parseInt(r.thumb_bottom),
+    });
     if (stats.hotspotTypes.has(r.hotspot_type)) {
         stats.hotspotTypes.set(r.hotspot_type, stats.hotspotTypes.get(r.hotspot_type) + 1);
     } else {
@@ -173,23 +193,23 @@ const getRandomIndices = (num, max) => {
     return indices;
 }
 
-const getThermal16ImageFilesFromIndices = (stats, indices) => {
-    let imageFiles = new Set();
+const getThermal16ImagesFromIndices = (stats, indices) => {
+    let images = new Set();
     let i = 0;
-    for (let imageFile of stats.thermal16Stats.uniqueImages) {
+    for (let image of stats.thermal16Stats.uniqueImages) {
         if (indices.has(i++)) {
-            imageFiles.add(imageFile);
+            images.add(image);
         }
     }
-    return imageFiles;
+    return images;
 }
 
 const writeCsvHeader = (writer) => {
-    writer.write('"hotspot_id","timestamp","filt_thermal16","filt_thermal8","filt_color","x_pos","y_pos","thumb_left","thumb_top","thumb_right","thumb_bottom","hotspot_type","species_id"\r\n');
+    writer.write(`"hotspot_id","timestamp","filt_thermal16","filt_thermal8","filt_color","x_pos","y_pos","thumb_left","thumb_top","thumb_right","thumb_bottom","hotspot_type","species_id"${os.EOL}`);
 };
 
 const writeCsvRecord = (writer, r) => {
-    writer.write(`"${r.hotspot_id}","${r.timestamp}","${r.filt_thermal16}","${r.filt_thermal8}","${r.filt_color}",${r.x_pos},${r.y_pos},${r.thumb_left},${r.thumb_top},${r.thumb_right},${r.thumb_bottom},"${r.hotspot_type}","${r.species_id}"\r\n`);
+    writer.write(`"${r.hotspot_id}","${r.timestamp}","${r.filt_thermal16}","${r.filt_thermal8}","${r.filt_color}",${r.x_pos},${r.y_pos},${r.thumb_left},${r.thumb_top},${r.thumb_right},${r.thumb_bottom},"${r.hotspot_type}","${r.species_id}"${os.EOL}`);
 };
 
 program
@@ -211,13 +231,13 @@ program
         let records = getCsvRecords(file);
         let stats = getCsvStats(records);
         let indices = getRandomIndices(parseInt(command.num), stats.thermal16Stats.uniqueImages.size);
-        let imageFiles = getThermal16ImageFilesFromIndices(stats, indices);
+        let images1 = getThermal16ImagesFromIndices(stats, indices);
         let writer1 = fs.createWriteStream(command.output1);
         let writer2 = fs.createWriteStream(command.output2);
         writeCsvHeader(writer1);
         writeCsvHeader(writer2);
         for (let r of records) {
-            writeCsvRecord(imageFiles.has(r.filt_thermal16) ? writer1 : writer2, r);
+            writeCsvRecord(images1.has(r.filt_thermal16) ? writer1 : writer2, r);
         }
     });
 
@@ -241,21 +261,41 @@ program
     .option('-t, --imgtype <type>')
     .option('-n, --num <images>')
     .option('-b, --bboxes')
-    .option('-f, --format <format>')
     .option('-o, --outdir <dir>')
     .description('Prepare label and image data for training')
     .action((file, command) => {
         if (!command.imgtype) {
             command.imgtype = 'thermal';
         }
-        let imageMap = images.getImageMap(command.imgdirs.split(','), command.imgtype);
+        let imageMap = imageUtil.getImageMap(command.imgdirs.split(','), command.imgtype);
         let filters = parseFilters(command.filters);
         filters.push((record) => {
             return imageMap.has(record[command.imgtype == 'thermal' ? 'filt_thermal16' : 'filt_color']);
         });
         let records = getCsvRecords(file, filters);
+        if (command.num) {
+            records = records.slice(0, parseInt(command.num) + 1);
+        }
         let stats = getCsvStats(records);
-        printStats(stats);
+        let images = Array.from(stats.thermal16Stats.uniqueImages.keys());
+        readline.question(`About to copy ${images.length} images to ${command.outdir}, are you sure? [y/n] `, (answer) => {
+            readline.close();
+            if (answer !== 'y') {
+                return;
+            }
+            imageUtil.copyImageFilesToDir(images, imageMap, command.outdir);
+            if (command.bboxes) {
+                for (let image of images) {
+                    let bboxes = stats.thermal16Stats.uniqueImages.get(image).bboxes;
+                    let bboxesWriter = fs.createWriteStream(path.join(command.outdir, `${image.slice(0, -4)}.bboxes.tsv`));
+                    let bboxesLabelWriter = fs.createWriteStream(path.join(command.outdir, `${image.slice(0, -4)}.bboxes.labels.tsv`));
+                    for (let bbox of bboxes) {
+                        bboxesWriter.write(`${bbox.left}\t${bbox.top}\t${bbox.right}\t${bbox.bottom}${os.EOL}`);
+                        bboxesLabelWriter.write(`${bbox.label}${os.EOL}`);
+                    }
+                }
+            }
+        });
     });
 
 program.on('--help', () => {

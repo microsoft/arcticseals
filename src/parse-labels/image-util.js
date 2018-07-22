@@ -18,4 +18,19 @@ const getImageMap = (dirs, type) => {
     return map;
 }
 
+const copyImageFilesToDir = (images, imageMap, dir) => {
+    let i = 0;
+    for (let image of images) {
+        fs.copyFile(imageMap.get(image), path.join(dir, image), (err) => {
+            if (err) {
+                console.log(`Failed to copy ${image}: ${err}`);
+            }
+            if (++i % 1000 == 0) {
+                console.log(`${i} images copied`);
+            }
+        });
+    }
+}
+
 module.exports.getImageMap = getImageMap;
+module.exports.copyImageFilesToDir = copyImageFilesToDir;
