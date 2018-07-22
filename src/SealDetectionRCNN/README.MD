@@ -43,7 +43,8 @@ sudo nvidia-docker run -it -v /data/sealdata:/datadrive -v $(pwd):/code --ipc=ho
 
 # Download the base (vgg16) model file
 
-cd .. # i.e., you want to be in the "SealDetectionRCNN" directory
+cd ..
+// That is, you want to be in the "SealDetectionRCNN" directory now
 python misc/convert_caffe_pretrain.py && mv vgg16_caffe.pth data/
 	
 
