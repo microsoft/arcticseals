@@ -50,7 +50,9 @@ This assumes you've put the data in /data/sealdata, and that you're currently in
     python misc/convert_caffe_pretrain.py && mv vgg16_caffe.pth data/
 
 
-# Update python inside docker (improves performance, not strictly necessary)
+# Build some native components
+
+Improves performance, not strictly necessary.
 
     conda install cython && cd model/utils/nms/ && python3 build.py build_ext --inplace
 
