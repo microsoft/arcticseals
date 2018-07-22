@@ -48,7 +48,12 @@ This assumes you've put the data in /data/sealdata, and that you're currently in
     // That is, you want to run the following in the "SealDetectionRCNN" directory
 
     python misc/convert_caffe_pretrain.py && mv vgg16_caffe.pth data/
-	
+
+
+# Update python inside docker (improves performance, not strictly necessary)
+
+    conda install cython && cd model/utils/nms/ && python3 build.py build_ext --inplace
+
 
 # Run the code 
 
@@ -64,11 +69,6 @@ Then run the actual training with
 	
     ./run_training.sh 2>&1 | tee ~/logfile.txt
 	
-For better speed, you can run the following command **while being inside docker**:
-
-    conda install cython && cd model/utils/nms/ && python3 build.py build_ext --inplace
-
-
 # Options
 
 Default options are in:
