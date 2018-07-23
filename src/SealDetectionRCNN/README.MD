@@ -21,7 +21,7 @@ This is just a pilot data set; we will upload the complete dataset with all seal
 	
 # Build the Docker image
 
-cd arcticseals/src/SealDetectionRCNN/docker
+cd arcticseals/src/SealDetectionRCNN/docker;
 sudo docker build -t sealdetection .
 
 
