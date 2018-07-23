@@ -272,7 +272,8 @@ program
         let filters = parseFilters(program.filters);
         let imagesNotFound = 0;
         filters.push((record) => {
-            if (imageMap.has(record[command.imgtype == 'thermal' ? 'filt_thermal16' : 'filt_color'])) {
+            let image = record[command.imgtype == 'thermal' ? 'filt_thermal16' : 'filt_color'];
+            if (imageMap.has(image)) {
                 return true;
             }
             imagesNotFound++;
@@ -301,7 +302,8 @@ program
             imageUtil.copyImageFilesToDir(images, imageMap, command.outdir);
             if (command.bboxes) {
                 for (let image of images) {
-                    let bboxes = stats.thermal16Stats.uniqueImages.get(image).bboxes;
+                    let uniqueImages = command.imgtype == 'thermal' ? stats.thermal16Stats.uniqueImages : stats.colorStats.uniqueImages;
+                    let bboxes = uniqueImages.get(image).bboxes;
                     let bboxesWriter = fs.createWriteStream(path.join(command.outdir, `${image.slice(0, -4)}.bboxes.tsv`));
                     let bboxesLabelWriter = fs.createWriteStream(path.join(command.outdir, `${image.slice(0, -4)}.bboxes.labels.tsv`));
                     for (let bbox of bboxes) {
