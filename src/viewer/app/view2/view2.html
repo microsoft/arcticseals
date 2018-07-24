@@ -1,3 +1,11 @@
+<button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+	Filter:
+</button>
+<div class="dropdown-menu">
+  <a class="dropdown-item" ng-click="filterMe('Anomaly')">Anomaly</a>
+  <a class="dropdown-item" ng-click="filterMe('Animal')">Animal</a>
+</div>
+  
 <div class="row">
 	<div ng-repeat="item in items"><img src="{{item.file}}"></img></div>
 </div>
