@@ -16,7 +16,7 @@ app.use('/thumb-img', express.static('E:\\noaa\\thumb-color'));
 
 app.use('/thumb-thermal', express.static('E:\\noaa\\thumb-thermal'));
 
-app.use('/crop-img', express.static('E:\\noaa\\crop-color'));
+app.use('/crop-img', express.static('E:\\noaa\\crop-img'));
 
 // using router.get() to prefix our path
 // url: http://localhost:3000/api/
