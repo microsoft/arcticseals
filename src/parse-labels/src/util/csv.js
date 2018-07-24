@@ -1,13 +1,6 @@
-'use strict';
-
 let fs = require('fs');
-let path = require('path');
 let os = require('os');
-let program = require('commander');
 let parse = require('csv-parse/lib/sync');
-let readline = require('readline');
-
-let imageUtil = require('./image-util');
 
 const parseTimestamp = (t) => {
     // Example: '20160407235833.627GMT'
@@ -39,6 +32,19 @@ const parseFilename = (f) => {
     return info; 
 };
 
+const parseFilters = (filters) => {
+    if (!filters)
+        return [];
+    return filters.split(',').map((filter) => {
+        let split = filter.split('=');
+        let field = split[0];
+        let value = split[1];
+        return (record) => {
+            return record[field] === value; 
+        };
+    });
+};
+
 const initImageFileStats = () => {
     return {
         uniqueImages: new Map(), // Image name to image info 
@@ -50,7 +56,7 @@ const initImageFileStats = () => {
 
 const initRecordStats = () => {
     return {
-        uniqueHotspots: new Set(),
+        uniqueHotspots: new Map(), // Hotspot id to { hotspot_type, species_id }
         totalHotspots: 0,
 
         uniqueTimestamps: new Set(),
@@ -90,7 +96,10 @@ const updateImageFileStats = (timestamp, f, imageStats) => {
 };
 
 const examineRecord = (r, stats) => {
-    stats.uniqueHotspots.add(r.hotspot_id);
+    stats.uniqueHotspots.set(r.hotspot_id, {
+        hotspot_type: r.hotspot_type,
+        species_id: r.species_id
+    });
     stats.totalHotspots++;
 
     let timestamp = parseTimestamp(r.timestamp);
@@ -173,6 +182,37 @@ const getCsvRecords = (filename, filters) => {
     });
 };
 
+const getCsvRecordsFromRawCsv = (filename, filters) => {
+    // Raw CSV column schema/example:
+    // wkt_geom,id,hotspot_id,frame_index_ind,timestamp,thermal_image_name,color_image_name,x_pos,y_pos,calculated_yaw_angle,hist_max_ind,cross_center,rmc_lat,rmc_ns,rmc_lon,rmc_ew,rmc_speed_knots,gga_alt,rmc_track_angle,max_amplitude_in_image,max_edge_in_image,max_slope_in_image,species_id,hotspot_type,species_confidence,number_of_seals,age_class,age_class_confidence,fog,match_uncertain,out_of_frame,disturbance,alt_species_id,alt_age_class,thumb_name,thumb_left,thumb_top,thumb_right,thumb_bottom,process_file,reviewer,process_image_c,process_image_t,process_dt_c,process_dt_t,latitude,longitude
+    // Point (-160.21906666666700403 71.7570666666667023),1,136156,68,20160407233031.429GMT,CHESS_FL1_S_160407_233031.429_THERM-16BIT.PNG,CHESS_FL1_S_160407_233031.429_COLOR-8-BIT.JPG,550,177,0,-11,N,7145.4244,N,16013.144,W,159.35,289.4,290.37,130.5,150,100,,Anomaly,,0,,,No,,,,,,CHESS_FL1_S_160407_233031.429_COLOR-8-BIT-136156.JPG,5344,1194,5856,1706,//nmfs/akc-nmml/NMML_CHESS_Imagery/FL1/left/CHESS2016_N94S_FL1_S_20160407_232940/UNFILTERED/detections_CHESS_FL1_S_6-300_200_110_70_R73/Processed_elr_valid_CHESS_FL01_S_set4of10.CSV,ELR,CHESS_FL1_S_160407_233031.429_COLOR-8-BIT.JPG,CHESS_FL1_S_160407_233031.429_THERM-16BIT.PNG,FL1S-20160407-233031.429,FL1S-20160407-233031.429,71.75706667,-160.2190667
+
+    // Normalized CSV column schema/example:
+    // "hotspot_id","timestamp","filt_thermal16","filt_thermal8","filt_color","x_pos","y_pos","thumb_left","thumb_top","thumb_right","thumb_bottom","hotspot_type","species_id"
+    // "16332","20160407234502.428GMT","CHESS_FL1_C_160407_234502.428_THERM-16BIT.PNG","CHESS_FL1_C_160407_234502.428_THERM-8-BIT.JPG","CHESS_FL1_C_160407_234502.428_COLOR-8-BIT.JPG",521,295,5125,1783,5637,2295,"Anomaly","NA"
+
+    let rawRecords = getCsvRecords(filename, filters);
+    let normalizedRecords = [];
+    for (let rawRecord of rawRecords) {
+        normalizedRecords.push({
+            hotspot_id: rawRecord.hotspot_id,
+            timestamp: rawRecord.timestamp,
+            filt_thermal16: rawRecord.thermal_image_name,
+            filt_thermal8: '', // Raw records don't have annotated 8-bit thermals
+            filt_color: rawRecord.color_image_name,
+            x_pos: rawRecord.x_pos,
+            y_pos: rawRecord.y_pos,
+            thumb_left: rawRecord.thumb_left,
+            thumb_top: rawRecord.thumb_top,
+            thumb_right: rawRecord.thumb_right,
+            thumb_bottom: rawRecord.thumb_bottom,
+            hotspot_type: rawRecord.hotspot_type,
+            species_id: rawRecord.species_id || "NA"
+        });
+    }
+    return normalizedRecords;
+}
+
 const getCsvStats = (records) => {
     let stats = initRecordStats();
     for (let r of records) {
@@ -180,29 +220,6 @@ const getCsvStats = (records) => {
     }
     return stats;
 };
-
-const getRandomIndices = (num, max) => {
-    let indices = new Set();
-    for (let i = 0; i < num; i++) {
-        let index;
-        do {
-            index = Math.floor(Math.random() * max);
-        } while(indices.has(index));
-        indices.add(index);
-    }
-    return indices;
-}
-
-const getThermal16ImagesFromIndices = (stats, indices) => {
-    let images = new Set();
-    let i = 0;
-    for (let image of stats.thermal16Stats.uniqueImages.keys()) {
-        if (indices.has(i++)) {
-            images.add(image);
-        }
-    }
-    return images;
-}
 
 const writeCsvHeader = (writer) => {
     writer.write(`"hotspot_id","timestamp","filt_thermal16","filt_thermal8","filt_color","x_pos","y_pos","thumb_left","thumb_top","thumb_right","thumb_bottom","hotspot_type","species_id"${os.EOL}`);
@@ -212,131 +229,10 @@ const writeCsvRecord = (writer, r) => {
     writer.write(`"${r.hotspot_id}","${r.timestamp}","${r.filt_thermal16}","${r.filt_thermal8}","${r.filt_color}",${r.x_pos},${r.y_pos},${r.thumb_left},${r.thumb_top},${r.thumb_right},${r.thumb_bottom},"${r.hotspot_type}","${r.species_id}"${os.EOL}`);
 };
 
-program
-    .command('stats <file>')
-    .description('Show label stats')
-    .action((file) => {
-        let filters = parseFilters(program.filters);
-        let records = getCsvRecords(file, filters);
-        let stats = getCsvStats(records);
-        printStats(stats);
-    });
-
-program
-    .command('split <file>')
-    .option('-n, --num <images>')
-    .option('-a, --output1 <filename>')
-    .option('-b, --output2 <filename>')
-    .description('Split labels into two disjoint sets')
-    .action((file, command) => {
-        let filters = parseFilters(program.filters);
-        let records = getCsvRecords(file, filters);
-        let stats = getCsvStats(records);
-        let indices = getRandomIndices(parseInt(command.num), stats.thermal16Stats.uniqueImages.size);
-        let images1 = getThermal16ImagesFromIndices(stats, indices);
-        let writer1 = fs.createWriteStream(command.output1);
-        let writer2 = fs.createWriteStream(command.output2);
-        writeCsvHeader(writer1);
-        writeCsvHeader(writer2);
-        for (let r of records) {
-            writeCsvRecord(images1.has(r.filt_thermal16) ? writer1 : writer2, r);
-        }
-    });
-
-const parseFilters = (filters) => {
-    if (!filters)
-        return [];
-    return filters.split(',').map((filter) => {
-        let split = filter.split('=');
-        let field = split[0];
-        let value = split[1];
-        return (record) => {
-            return record[field] === value; 
-        };
-    });
-};
-
-program
-    .command('prep <file>')
-    .option('-i, --imgdirs <dirs>')
-    .option('-t, --imgtype <type>')
-    .option('-n, --num <images>')
-    .option('-b, --bboxes')
-    .option('-o, --outdir <dir>')
-    .description('Prepare label and image data for training')
-    .action((file, command) => {
-        if (!command.imgtype) {
-            command.imgtype = 'thermal';
-        }
-        let imageMap = imageUtil.getImageMap(command.imgdirs.split(','), command.imgtype);
-        let filters = parseFilters(program.filters);
-        let imagesNotFound = 0;
-        filters.push((record) => {
-            if (imageMap.has(record[command.imgtype == 'thermal' ? 'filt_thermal16' : 'filt_color'])) {
-                return true;
-            }
-            imagesNotFound++;
-            return false;
-        });
-        let records = getCsvRecords(file, filters);
-        if (command.num) {
-            records = records.slice(0, parseInt(command.num) + 1);
-        }
-        let stats = getCsvStats(records);
-        let images;
-        if (command.imgtype == 'thermal') {
-            images = Array.from(stats.thermal16Stats.uniqueImages.keys());
-        } else {
-            images = Array.from(stats.colorStats.uniqueImages.keys());
-        }
-        let prompt = readline.createInterface(process.stdin, process.stdout);
-        if (imagesNotFound > 0) {
-            console.log(`Warning: ${imagesNotFound} were not found`);
-        }
-        prompt.question(`About to copy ${images.length} images to ${command.outdir}, are you sure? [y/n] `, (answer) => {
-            prompt.close();
-            if (answer !== 'y') {
-                return;
-            }
-            imageUtil.copyImageFilesToDir(images, imageMap, command.outdir);
-            if (command.bboxes) {
-                for (let image of images) {
-                    let bboxes = stats.thermal16Stats.uniqueImages.get(image).bboxes;
-                    let bboxesWriter = fs.createWriteStream(path.join(command.outdir, `${image.slice(0, -4)}.bboxes.tsv`));
-                    let bboxesLabelWriter = fs.createWriteStream(path.join(command.outdir, `${image.slice(0, -4)}.bboxes.labels.tsv`));
-                    for (let bbox of bboxes) {
-                        bboxesWriter.write(`${bbox.left}\t${bbox.top}\t${bbox.right}\t${bbox.bottom}${os.EOL}`);
-                        bboxesLabelWriter.write(`${bbox.label}${os.EOL}`);
-                    }
-                }
-            }
-        });
-    });
-
-program.on('--help', () => {
-    console.log('');
-    console.log('For all commands, <file> is a CSV file of CHESS label data.');
-    console.log('');
-    console.log('split options:');
-    console.log('');
-    console.log('    -n, --num <images>         Number of thermal images to include in first label set');
-    console.log('    -a, --output1 <filename>   First output file name');
-    console.log('    -b, --output2 <filename>   Second output file name');
-    console.log('');
-    console.log('prep options:');
-    console.log('');
-    console.log('    -i, --imgdirs <dirs>       Comma-separated list of file paths containing images');
-    console.log('    -t, --imgtype <type>       "thermal" or "color" (defaults to "thermal")');
-    console.log('    -n, --num <images>         Number of thermal images to (non-randomly) select for inclusion');
-    console.log('    -b, --bboxes               Whether to output .bboxes[.labels].tsv files next to images');
-    console.log('    -o, --outdir <dir>         Destination for output files');
-    console.log('');
-});
-
-program
-    .option('-f, --filters <conditions>', 'Comma-separated list of filter conditions, e.g. hotspot_type=Animal')
-    .parse(process.argv);
-
-if (!process.argv.slice(2).length) {
-    program.outputHelp();
-}
+module.exports.parseFilters = parseFilters;
+module.exports.getCsvRecords = getCsvRecords;
+module.exports.getCsvRecordsFromRawCsv = getCsvRecordsFromRawCsv;
+module.exports.getCsvStats = getCsvStats;
+module.exports.writeCsvHeader = writeCsvHeader;
+module.exports.writeCsvRecord = writeCsvRecord;
+module.exports.printStats = printStats;
