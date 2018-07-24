@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 from PIL import Image
 
 # Setable parameters
-image_directory = './ArcticSealsData01'
-num_images = 500
+image_directory = './ArcticSealsData01_Thermal'
+num_images = 5000
 pixel_height = 512 # Must be either 512 or 480
 
 all_files = os.listdir(image_directory)
