@@ -1,10 +1,13 @@
+"""Functions for transforming 16-bit thermal images into 8-bits"""
+# Imports
 import argparse
 import os
 import sys
 import numpy as np
 from PIL import Image
 
-def lin_normalize_image(image_array, bottom=None, top= None):
+# Functions
+def lin_normalize_image(image_array, bottom=None, top=None):
     """Linear normalization for an image array
     Inputs:
         image_array: np.ndarray, image data to be normalized
@@ -35,9 +38,12 @@ def parse_arguments(sys_args):
         output_directory: string, path to the output image directory
     """
     # Set up parse
-    parser = argparse.ArgumentParser(description='Command line interface for thermal image normalization')
-    parser.add_argument('--indir', type=str, required=True, help='relative path to directory containing images')
-    parser.add_argument('--outdir', type=str, default=None, help='relative path to the output directory')
+    parser = argparse.ArgumentParser(
+        description='Command line interface for thermal image normalization')
+    parser.add_argument('--indir', type=str,
+                        required=True, help='relative path to directory containing images')
+    parser.add_argument('--outdir', type=str,
+                        default=None, help='relative path to the output directory')
     # Parse
     args = parser.parse_args(sys_args)
 
@@ -45,9 +51,9 @@ def parse_arguments(sys_args):
     input_directory = args.indir
 
     if args.outdir is None:
-            output_directory = input_directory
+        output_directory = input_directory
     else:
-            output_directory = args.outdir
+        output_directory = args.outdir
 
     return input_directory, output_directory
 
@@ -62,8 +68,8 @@ def curate_files(input_directory, output_directory):
     """
     all_files = os.listdir(input_directory)
 
-    input_files = [x for x in all_files if (x.find('16BIT.PNG') != -1)]
-    output_files = [x.replace('16BIT','8BIT-N') for x in input_files]
+    input_files = [x for x in all_files if x.find('16BIT.PNG') != -1]
+    output_files = [x.replace('16BIT', '8BIT-N') for x in input_files]
 
     input_files = [os.path.join(input_directory, x) for x in input_files]
     output_files = [os.path.join(output_directory, x) for x in output_files]
@@ -72,9 +78,11 @@ def curate_files(input_directory, output_directory):
 
 
 def main(sys_args):
+    """Function that is called by the command line"""
     # Parses the arguments
     input_directory, output_directory = parse_arguments(sys_args[1:])
     input_files, output_files = curate_files(input_directory, output_directory)
+    print('Found {} files for processing'.format(len(input_files)))
     
     # Corrections for the camera with 512 x 640 pixels
     bottom512 = 51000
@@ -85,20 +93,20 @@ def main(sys_args):
     top480 = 59000
 
     successful = 0
-    for ix in range(len(input_files)):
+    for index, in_file in enumerate(input_files):
         try:
-            cur_data = np.array(Image.open(input_files[ix]))
+            cur_data = np.array(Image.open(in_file))
 
             if cur_data.shape[0] == 512:
                 normalized = lin_normalize_image(cur_data, bottom512, top512)
             elif cur_data.shape[0] == 480:
                 normalized = lin_normalize_image(cur_data, bottom480, top480)
 
-            im = Image.fromarray(normalized)
-            im.save(output_files[ix])
+            save_im = Image.fromarray(normalized)
+            save_im.save(output_files[index])
             successful += 1
-        except:
-            print('Unable to load {}'.format(output_files[ix]))
+        except IOError:
+            print('Unable to load {}'.format(output_files[index]))
 
     print('Completed converting {} files'.format(successful))
 
