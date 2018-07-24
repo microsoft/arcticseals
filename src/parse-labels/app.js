@@ -8,6 +8,7 @@ let parse = require('csv-parse/lib/sync');
 let readline = require('readline');
 
 let imageUtil = require('./image-util');
+let fileUtil = require('./file-util');
 
 const parseTimestamp = (t) => {
     // Example: '20160407235833.627GMT'
@@ -50,7 +51,7 @@ const initImageFileStats = () => {
 
 const initRecordStats = () => {
     return {
-        uniqueHotspots: new Set(),
+        uniqueHotspots: new Map(), // Hotspot id to { hotspot_type, species_id }
         totalHotspots: 0,
 
         uniqueTimestamps: new Set(),
@@ -90,7 +91,10 @@ const updateImageFileStats = (timestamp, f, imageStats) => {
 };
 
 const examineRecord = (r, stats) => {
-    stats.uniqueHotspots.add(r.hotspot_id);
+    stats.uniqueHotspots.set(r.hotspot_id, {
+        hotspot_type: r.hotspot_type,
+        species_id: r.species_id
+    });
     stats.totalHotspots++;
 
     let timestamp = parseTimestamp(r.timestamp);
@@ -272,7 +276,8 @@ program
         let filters = parseFilters(program.filters);
         let imagesNotFound = 0;
         filters.push((record) => {
-            if (imageMap.has(record[command.imgtype == 'thermal' ? 'filt_thermal16' : 'filt_color'])) {
+            let image = record[command.imgtype == 'thermal' ? 'filt_thermal16' : 'filt_color'];
+            if (imageMap.has(image)) {
                 return true;
             }
             imagesNotFound++;
@@ -301,7 +306,8 @@ program
             imageUtil.copyImageFilesToDir(images, imageMap, command.outdir);
             if (command.bboxes) {
                 for (let image of images) {
-                    let bboxes = stats.thermal16Stats.uniqueImages.get(image).bboxes;
+                    let uniqueImages = command.imgtype == 'thermal' ? stats.thermal16Stats.uniqueImages : stats.colorStats.uniqueImages;
+                    let bboxes = uniqueImages.get(image).bboxes;
                     let bboxesWriter = fs.createWriteStream(path.join(command.outdir, `${image.slice(0, -4)}.bboxes.tsv`));
                     let bboxesLabelWriter = fs.createWriteStream(path.join(command.outdir, `${image.slice(0, -4)}.bboxes.labels.tsv`));
                     for (let bbox of bboxes) {
@@ -311,6 +317,36 @@ program
                 }
             }
         });
+    });
+
+program
+    .command('prephotspots <file>')
+    .option('-i, --imgdirs <dirs>')
+    .option('-o, --outdir <dir>')
+    .description('Moves hotspot crop images into folders by type')
+    .action((file, command) => {
+        let records = getCsvRecords(file);
+        let stats = getCsvStats(records);
+        let imageMap = imageUtil.getImageMap(command.imgdirs.split(','), 'hotspot');
+        let filesMoved = 0;
+        for (let image of imageMap.keys()) {
+            let matches = image.match(new RegExp(/_HOTSPOT_(.*)\.JPG$/));
+            if (matches.length == 2) {
+                let hotspotId = matches[1];
+                let hotspotInfo = stats.uniqueHotspots.get(hotspotId);
+                if (hotspotInfo) {
+                    let hotspotTypeDir = path.join(command.outdir, hotspotInfo.hotspot_type);
+                    fileUtil.ensureDirExists(hotspotTypeDir);
+                    fs.renameSync(imageMap.get(image), path.join(hotspotTypeDir, image));
+                    filesMoved++;
+                } else {
+                    console.log(`No hotspot info for ${hotspotId}`)
+                }
+            } else {
+                console.log(`No match for ${image}`);
+            }
+        }
+        console.log(`Moved ${filesMoved} files.`);
     });
 
 program.on('--help', () => {
