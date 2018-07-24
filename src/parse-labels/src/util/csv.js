@@ -182,6 +182,37 @@ const getCsvRecords = (filename, filters) => {
     });
 };
 
+const getCsvRecordsFromRawCsv = (filename, filters) => {
+    // Raw CSV column schema/example:
+    // wkt_geom,id,hotspot_id,frame_index_ind,timestamp,thermal_image_name,color_image_name,x_pos,y_pos,calculated_yaw_angle,hist_max_ind,cross_center,rmc_lat,rmc_ns,rmc_lon,rmc_ew,rmc_speed_knots,gga_alt,rmc_track_angle,max_amplitude_in_image,max_edge_in_image,max_slope_in_image,species_id,hotspot_type,species_confidence,number_of_seals,age_class,age_class_confidence,fog,match_uncertain,out_of_frame,disturbance,alt_species_id,alt_age_class,thumb_name,thumb_left,thumb_top,thumb_right,thumb_bottom,process_file,reviewer,process_image_c,process_image_t,process_dt_c,process_dt_t,latitude,longitude
+    // Point (-160.21906666666700403 71.7570666666667023),1,136156,68,20160407233031.429GMT,CHESS_FL1_S_160407_233031.429_THERM-16BIT.PNG,CHESS_FL1_S_160407_233031.429_COLOR-8-BIT.JPG,550,177,0,-11,N,7145.4244,N,16013.144,W,159.35,289.4,290.37,130.5,150,100,,Anomaly,,0,,,No,,,,,,CHESS_FL1_S_160407_233031.429_COLOR-8-BIT-136156.JPG,5344,1194,5856,1706,//nmfs/akc-nmml/NMML_CHESS_Imagery/FL1/left/CHESS2016_N94S_FL1_S_20160407_232940/UNFILTERED/detections_CHESS_FL1_S_6-300_200_110_70_R73/Processed_elr_valid_CHESS_FL01_S_set4of10.CSV,ELR,CHESS_FL1_S_160407_233031.429_COLOR-8-BIT.JPG,CHESS_FL1_S_160407_233031.429_THERM-16BIT.PNG,FL1S-20160407-233031.429,FL1S-20160407-233031.429,71.75706667,-160.2190667
+
+    // Normalized CSV column schema/example:
+    // "hotspot_id","timestamp","filt_thermal16","filt_thermal8","filt_color","x_pos","y_pos","thumb_left","thumb_top","thumb_right","thumb_bottom","hotspot_type","species_id"
+    // "16332","20160407234502.428GMT","CHESS_FL1_C_160407_234502.428_THERM-16BIT.PNG","CHESS_FL1_C_160407_234502.428_THERM-8-BIT.JPG","CHESS_FL1_C_160407_234502.428_COLOR-8-BIT.JPG",521,295,5125,1783,5637,2295,"Anomaly","NA"
+
+    let rawRecords = getCsvRecords(filename, filters);
+    let normalizedRecords = [];
+    for (let rawRecord of rawRecords) {
+        normalizedRecords.push({
+            hotspot_id: rawRecord.hotspot_id,
+            timestamp: rawRecord.timestamp,
+            filt_thermal16: rawRecord.thermal_image_name,
+            filt_thermal8: '', // Raw records don't have annotated 8-bit thermals
+            filt_color: rawRecord.color_image_name,
+            x_pos: rawRecord.x_pos,
+            y_pos: rawRecord.y_pos,
+            thumb_left: rawRecord.thumb_left,
+            thumb_top: rawRecord.thumb_top,
+            thumb_right: rawRecord.thumb_right,
+            thumb_bottom: rawRecord.thumb_bottom,
+            hotspot_type: rawRecord.hotspot_type,
+            species_id: rawRecord.species_id || "NA"
+        });
+    }
+    return normalizedRecords;
+}
+
 const getCsvStats = (records) => {
     let stats = initRecordStats();
     for (let r of records) {
@@ -200,6 +231,7 @@ const writeCsvRecord = (writer, r) => {
 
 module.exports.parseFilters = parseFilters;
 module.exports.getCsvRecords = getCsvRecords;
+module.exports.getCsvRecordsFromRawCsv = getCsvRecordsFromRawCsv;
 module.exports.getCsvStats = getCsvStats;
 module.exports.writeCsvHeader = writeCsvHeader;
 module.exports.writeCsvRecord = writeCsvRecord;

@@ -2,8 +2,10 @@ let fs = require('fs');
 let path = require('path');
 
 const getImageMap = (dirs, type) => {
-    let typeSubstr = 'COLOR-8-BIT.JPG';
-    if (type == 'thermal') {
+    let typeSubstr = null;
+    if (type == 'color') {
+        typeSubstr = 'COLOR-8-BIT.JPG';
+    } else if (type == 'thermal') {
         typeSubstr = 'THERM-16BIT.PNG';
     } else if (type == 'hotspot') {
         typeSubstr = '_HOTSPOT_';
@@ -12,7 +14,7 @@ const getImageMap = (dirs, type) => {
     for (let dir of dirs) {
         let files = fs.readdirSync(dir);
         for (let file of files) {
-            if (file.indexOf(typeSubstr) >= 0) {
+            if (!typeSubstr || file.indexOf(typeSubstr) >= 0) {
                 map.set(file, path.join(dir, file));
             }
         }

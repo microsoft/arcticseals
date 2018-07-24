@@ -6,10 +6,10 @@ let fileUtil = require('../util/file');
 
 module.exports.registerCommand = (program) => {
     program
-        .command('prephotspots <file>')
-        .option('-i, --imgdirs <dirs>')
-        .option('-o, --outdir <dir>')
-        .description('Moves hotspot crop images into folders by type')
+        .command('thumbs <file>')
+        .option('-i, --imgdirs <dirs>', 'Comma-separated list of file paths containing thumb images')
+        .option('-o, --outdir <dir>', 'Destination for output files')
+        .description('Moves hotspot thumb images into folders by type')
         .action((file, command) => {
             let records = csvUtil.getCsvRecords(file);
             let stats = csvUtil.getCsvStats(records);
