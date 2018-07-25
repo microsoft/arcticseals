@@ -25,7 +25,7 @@ import PIL.ImageFont
 
 
 class PlasticDetector:
-    def __init__(self, model_path, useGPU, n_fg_classes=2):
+    def __init__(self, model_path, useGPU, n_fg_classes=1):
         ''' Creates a new detection model using the weights 
         stored in the file MODEL_PATH and initializes the GPU 
         if USEGPU is set to true.
@@ -34,7 +34,7 @@ class PlasticDetector:
         '''
         torch.set_num_threads(1)
         opt.load_path = model_path
-        self.faster_rcnn = FasterRCNNVGG16(n_fg_class=n_fg_classes, anchor_scales=[1])
+        self.faster_rcnn = FasterRCNNVGG16(n_fg_class=n_fg_classes, ratios=[1], anchor_scales=[1])
         self.trainer = FasterRCNNTrainer(self.faster_rcnn, n_fg_class=n_fg_classes)
         if useGPU:
             self.trainer = self.trainer.cuda()
