@@ -1,5 +1,12 @@
 import os
 
+# For details of what each of these steps should take as input and produce as a result, please see:
+# https://teams.microsoft.com/l/entity/com.microsoft.teamspace.tab.wiki/tab%3a%3abc2ceef2-46a1-4c0e-8deb-17fc1afc9983?label=Inference+%26+Validation+Pipeline+in+Wiki&context=%7b%0d%0a++%22subEntityId%22%3a+%22%7b%5c%22pageId%5c%22%3a2%2c%5c%22sectionId%5c%22%3a8%2c%5c%22origin%5c%22%3a2%7d%22%2c%0d%0a++%22canvasUrl%22%3a+%22https%3a%2f%2fteams.microsoft.com%2fl%2ftab%2f19%253adfaf4e05a29741fe8a2dc3cf8d0c8f57%2540thread.skype%2ftab%253a%253abc2ceef2-46a1-4c0e-8deb-17fc1afc9983%3flabel%3dWiki%26tenantId%3d72f988bf-86f1-41af-91ab-2d7cd011db47%22%2c%0d%0a++%22channelId%22%3a+%2219%3adfaf4e05a29741fe8a2dc3cf8d0c8f57%40thread.skype%22%0d%0a%7d&tenantId=72f988bf-86f1-41af-91ab-2d7cd011db47
+
+# The folder starts out with 16-bit PNG thermal and JPG color imagery and the inference
+# pipeline produces intermediate and final results in "hotspots.csv" in the same folder.
+# See https://docs.python.org/2/library/csv.html for reading/writing CSV files.
+
 def convertThermal16bitTo8bit(folder):
     print('Converting thermal data...')
 
