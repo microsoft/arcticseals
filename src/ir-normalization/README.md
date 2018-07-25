@@ -1,7 +1,7 @@
 ## IR Image Normalization 
 
 This directory contains the code for normalizing 16-bit IR images into 8-bit IR images. This is being done through a linear transformation based on each camera used during the image campaign. The normalization is done as follows: 
-`normalized_image = (original_image - bottom) / (top - bottom) * 256`
+`normalized_image = (original_image - bottom) / (top - bottom) * 255`
 Where:
 * original_image is the data from the 16 bit image
 * bottom is the value that is mapped to zero in the normalization
@@ -26,6 +26,6 @@ The following are requirements represented by requirements.txt
 
 ### To Operate
 The following steps should be done to run this script
-1. Install Dependencies: `pip install requirements.txt`
+1. Install Dependencies: `pip install -r requirements.txt`
 1. Run the script `python normalizer.py --indir /path/to/input/images --outdir /path/to/output/location`
 1. After running the process, you can test the output images using `python loading-example.py --dir /path/to/output/location`. You should expect to see that the type of data in the array is uint8.

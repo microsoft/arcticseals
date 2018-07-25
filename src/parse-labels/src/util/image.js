@@ -5,8 +5,10 @@ const getImageMap = (dirs, type) => {
     let typeSubstr = null;
     if (type == 'color') {
         typeSubstr = 'COLOR-8-BIT.JPG';
-    } else if (type == 'thermal') {
+    } else if (type == 'thermal16') {
         typeSubstr = 'THERM-16BIT.PNG';
+    } else if (type == 'thermal8') {
+        typeSubstr = 'THERM-8BIT-N.PNG';
     } else if (type == 'hotspot') {
         typeSubstr = '_HOTSPOT_';
     }

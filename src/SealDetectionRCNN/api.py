@@ -25,7 +25,7 @@ import PIL.ImageFont
 
 
 class PlasticDetector:
-    def __init__(self, model_path, useGPU, n_fg_classes=2):
+    def __init__(self, model_path, useGPU, n_fg_classes=1):
         ''' Creates a new detection model using the weights 
         stored in the file MODEL_PATH and initializes the GPU 
         if USEGPU is set to true.
@@ -34,7 +34,7 @@ class PlasticDetector:
         '''
         torch.set_num_threads(1)
         opt.load_path = model_path
-        self.faster_rcnn = FasterRCNNVGG16(n_fg_class=n_fg_classes, anchor_scales=[1])
+        self.faster_rcnn = FasterRCNNVGG16(n_fg_class=n_fg_classes, ratios=[1], anchor_scales=[1])
         self.trainer = FasterRCNNTrainer(self.faster_rcnn, n_fg_class=n_fg_classes)
         if useGPU:
             self.trainer = self.trainer.cuda()
@@ -106,8 +106,12 @@ class PlasticDetector:
         box_filter = np.array(pred_scores[0]) > 0.7
         return pred_bboxes[0][box_filter], pred_labels[0][box_filter], pred_scores[0][box_filter]
 
-
-
+    def predict_bboxes(self, image_path):
+        img = PIL.Image.open(image_path)
+        print('Working on image {}'.format(image_path))
+        print(self.predict_image(img, 5))
+        pred_bboxes, pred_scores = self.predict_image(img, 1000)
+        return pred_bboxes
 
 if __name__ == '__main__':
     det = PlasticDetector('checkpoints/fasterrcnn_07122125_0.5273599762268979', True)

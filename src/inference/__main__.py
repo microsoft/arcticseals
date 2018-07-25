@@ -7,8 +7,9 @@ import os
 # pipeline produces intermediate and final results in "hotspots.csv" in the same folder.
 # See https://docs.python.org/2/library/csv.html for reading/writing CSV files.
 
-def convertThermal16bitTo8bit(folder):
-    print('Converting thermal data...')
+# We will skip this step for now; the validation dataset can presume the thermal data is already 8-bit normalized (8BIT-N.JPG suffix)
+#def convertThermal16bitTo8bit(folder):
+#    print('Converting thermal data...')
 
 def detectHotspots(folder):
     print('Detecting hotspots...')
@@ -26,7 +27,7 @@ def validate(folder):
     print('Validating...')
 
 cwd = os.getcwd()
-convertThermal16bitTo8bit(cwd)
+#convertThermal16bitTo8bit(cwd)
 detectHotspots(cwd)
 registerThermalAndColorImages(cwd)
 extractThumbnails(cwd)
