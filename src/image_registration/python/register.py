@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 MAX_FEATURES = 500
 GOOD_MATCH_PERCENT = 0.15
-RATIO_TEST = .85
+RATIO_TEST = .80
 MATCH_HEIGHT = 512
 MIN_MATCHES = 10
 MIN_INLIERS = 4
@@ -67,7 +67,7 @@ def computeTransform(imgRef, img, warp_mode = cv2.MOTION_HOMOGRAPHY, matchLowRes
 
     if (len(matches) < MIN_MATCHES):
         print("not enough matches")
-        return np.identity(3)
+        return False, np.identity(3)
 
     # Extract location of good matches
     points1 = np.zeros((len(matches), 2), dtype=np.float32)
@@ -84,7 +84,7 @@ def computeTransform(imgRef, img, warp_mode = cv2.MOTION_HOMOGRAPHY, matchLowRes
 
     if (sum(mask) < MIN_INLIERS):
         print("not enough inliers")
-        return np.identity(3)
+        return False, np.identity(3)
 
     # if non homography requested, compute from inliers
     if warp_mode != cv2.MOTION_HOMOGRAPHY:
@@ -103,7 +103,7 @@ def computeTransform(imgRef, img, warp_mode = cv2.MOTION_HOMOGRAPHY, matchLowRes
         h[0,:] = a[0,:]
         h[1,:] = a[1,:]
 
-    return h
+    return True, h
 
 # projective transform of a point
 def warpPoint(pt, h):
@@ -131,8 +131,12 @@ def main():
     imgRef =  cv2.imread(fileRGB)
 
     # omcpute transform
-    transform = computeTransform(imgRef, img)
-   
+    ret, transform = computeTransform(imgRef, img)
+
+    if (not ret):
+        print("failed!!!")
+        return
+
     # warp IR image
     imgWarped = cv2.warpPerspective(img, transform, (imgRef.shape[1], imgRef.shape[0]))
 
