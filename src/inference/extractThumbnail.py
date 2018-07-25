@@ -18,24 +18,17 @@ with open(jsonName) as json_data:
 inputDir = pathlib.Path(inDir)
 outputDir = pathlib.Path(outDir)
 
-fieldnames = ("hotspot_id","timestamp","filt_thermal16","filt_thermal8","filt_color","x_pos","y_pos","thumb_left","thumb_top","thumb_right","thumb_bottom","hotspot_type","species_id")
-csvfilename = csvName + '.csv'
-jsonfilename = csvName + '.json'
-entires = []
+for i in range(0,len(artic)):
+    currentFullFilename = artic[i]['filt_color']
+    inputFile = os.path.join(inputDir, currentFullFilename)
+    currentFilename = os.path.splitext(currentFullFilename)[0] + "_HOTSPOT_" + artic[i]['hotspot_id'] + ".JPG"
+    outputFile = os.path.join(outputDir, currentFilename)
+    img = Image.open(inputFile)
 
-with open(csvfilename,'r') as csvfile:
-    reader = csv.DictReader( csvfile, fieldnames)
-    next(reader, None)
-    for row in reader:
-        entry = OrderedDict()
-        for field in fieldnames:
-            entry[field] = row[field]
-        entires.append(entry)
-
-output = {
-    "Artic": entires
-}
-
-with open(jsonfilename, 'w') as jsonfile:
-    json.dump(output, jsonfile, indent=4)
-    jsonfile.write('\n')
+    x1 = int(artic[i]['thumb_left'])
+    y1 = int(artic[i]['thumb_top'])
+    x2 = int(artic[i]['thumb_right'])
+    y2 = int(artic[i]['thumb_bottom'])
+    area=(x1,y1,x2,y2)
+    crop_img = img.crop(area)
+    crop_img.save(outputFile)
