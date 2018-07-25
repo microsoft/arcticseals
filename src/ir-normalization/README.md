@@ -26,6 +26,6 @@ The following are requirements represented by requirements.txt
 
 ### To Operate
 The following steps should be done to run this script
-1. Install Dependencies: `pip install requirements.txt`
+1. Install Dependencies: `pip install -r requirements.txt`
 1. Run the script `python normalizer.py --indir /path/to/input/images --outdir /path/to/output/location`
 1. After running the process, you can test the output images using `python loading-example.py --dir /path/to/output/location`. You should expect to see that the type of data in the array is uint8.
