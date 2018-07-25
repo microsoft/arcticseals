@@ -1,0 +1,5 @@
+To run you need to install these python packages: 
+
+opencv-python
+opencv-python-contrib
+matplotlib
