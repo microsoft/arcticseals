@@ -76,6 +76,51 @@ def curate_files(input_directory, output_directory):
 
     return input_files, output_files
 
+def parse_filename(filename):
+    """Gets the camera position argument from filename
+    Input:
+        filename: string, name of the image file
+    Output:
+        camera_pos: string, capital letter position of the camera
+    """
+    tokens = os.path.basename(filename).split('_')
+ 
+    for token in tokens:
+      if token == 'P' or token == 'C' or token == 'S':
+        camera_pos = token
+        break
+    else:
+      print('Warning: Bad filename format %s' % filename)
+
+    return camera_pos
+ 
+
+def get_scaling_values(filename, num_rows):
+    """Returns the bottom and top scaling parameters based on filename
+    Inputs:
+        filename: string, name of the file
+        num_rows: int, number of rows in the image
+    Outputs:
+        bottom: int, number that maps to 0 in scaled image
+        top: int, number that maps to 255 in scaled image
+    """
+    camera_pos = parse_filename(filename)
+    
+    if camera_pos == "P":
+        if num_rows == 512:
+            bottom = 53500
+            top = 56500
+        elif num_rows == 480:
+            bottom = 50500
+            top = 58500
+    elif camera_pos == "C":
+        bottom = 50500
+        top = 58500
+    else: #S and default
+        bottom = 51000
+        top = 57500
+
+    return bottom, top
 
 def main(sys_args):
     """Function that is called by the command line"""
@@ -84,23 +129,12 @@ def main(sys_args):
     input_files, output_files = curate_files(input_directory, output_directory)
     print('Found {} files for processing'.format(len(input_files)))
     
-    # Corrections for the camera with 512 x 640 pixels
-    bottom512 = 51000
-    top512 = 59000
-
-    # Corrections for the camera with 480 x 640 pixels
-    bottom480 = 51000
-    top480 = 59000
-
     successful = 0
     for index, in_file in enumerate(input_files):
         try:
             cur_data = np.array(Image.open(in_file))
-
-            if cur_data.shape[0] == 512:
-                normalized = lin_normalize_image(cur_data, bottom512, top512)
-            elif cur_data.shape[0] == 480:
-                normalized = lin_normalize_image(cur_data, bottom480, top480)
+            bottom, top = get_scaling_values(in_file, cur_data.shape[0])
+            normalized = lin_normalize_image(cur_data, bottom, top)
 
             save_im = Image.fromarray(normalized)
             save_im.save(output_files[index])
