@@ -8,8 +8,6 @@ this code assumes that the output file (the result of our ML) matches the same c
 it loads the expected (validation.csv) answers into a dictionnary and then checks whether ouput found them
 the metrics compute the distance and false positives
 to dos: 
-filter out anomalies in the csv we populate (results)
-figure out why hotspotDistances doesn't have the complete length of 124; the Percent of hotspots found should be 100% since the two files have the same content right now
 Note: outputExample and validationWithoutAnomalies are identical right now
 '''
 
@@ -20,8 +18,8 @@ registrationDistances = []
 classificationTrue = 0
 classificationFalse = 0
 expectedTruePositives = 0
-
-with open('outputExample.csv', 'r') as answers:
+    
+with open('validationWithoutAnomalies.csv', 'r') as answers:
     # col 5 and 6 = hotspot
     # col 7-10 = registration
     # col 12 = species_id 
@@ -41,9 +39,10 @@ with open('outputExample.csv', 'r') as answers:
         else:
             expectedDict[photoID] = [i]
                 
-    with open('validationWithoutAnomalies.csv', 'r') as results:
+    with open('outputExample.csv', 'r') as results:
         res = csv.reader(results)
-        resList = list(res)
+        resList1 = list(res)
+        resList = list(filter(lambda row: row[11] != "Anomaly", resList1))
         # todo: filter out anomalies (skip first row of CSV ** asuming there is a title row **)
         for j in range(1, len(resList)): 
             resultRow = resList[j]
