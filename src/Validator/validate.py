@@ -133,7 +133,9 @@ with open('validationWithoutAnomalies.csv', 'r') as answers:
                     else:
                         classificationFalse += 1
 
-    print("Percent of hot spots found: " + str((classificationTrue + classificationFalse) / expectedTruePositives))
+    # Print results on screen
+    print("Number of hot spots found: " + str(len(resList)-1))
+    print("Percent of hot spots found: " + str((classificationTrue + classificationFalse) / expectedTruePositives*100)  + " percent.")
     print("There were " + str(falsePositives) + " false positives.")
     print("There were " + str(falseNegatives) + " false negatives.")
     if ((classificationTrue + classificationFalse) > 0):
@@ -144,3 +146,19 @@ with open('validationWithoutAnomalies.csv', 'r') as answers:
     if (len(registrationDistances) > 0):
         print("There was an average registration distance of " + str(sum(registrationDistances) / len(registrationDistances)))
         print("There was an registration accuracy of " + str(classificationTrue / len(registrationDistances)*100) + " percent.")
+        
+    # Print result to a file
+    with open('evaluationResults.txt', 'w') as f:
+        print("Number of hot spots found: " + str(len(resList)-1), file=f)
+        print("Percent of hot spots found: " + str((classificationTrue + classificationFalse) / expectedTruePositives*100)  + " percent.", file=f)
+        print("There were " + str(falsePositives) + " false positives.", file=f)
+        print("There were " + str(falseNegatives) + " false negatives.", file=f)
+        if ((classificationTrue + classificationFalse) > 0):
+            print("There was a classification accuracy of " + str((classificationTrue / (classificationTrue + classificationFalse)) * 100) + " percent.", file=f)
+        if (len(hotSpotDistances) > 0):
+            print("There was an average hot spot distance of " + str(sum(hotSpotDistances) / len(hotSpotDistances)), file=f)        
+            print("There was an hot spot location detection accuracy of " + str(hotspotLocationTrue / len(hotSpotDistances)*100)  + " percent.", file=f)
+        if (len(registrationDistances) > 0):
+            print("There was an average registration distance of " + str(sum(registrationDistances) / len(registrationDistances)), file=f)
+            print("There was an registration accuracy of " + str(classificationTrue / len(registrationDistances)*100) + " percent.", file=f)
+        
