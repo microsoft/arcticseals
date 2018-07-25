@@ -1,9 +1,11 @@
 import sys
+import uuid
+import hashlib
 import os
 import glob
 import argparse
-import pandas as pd 
-from api import PlasticDetector 
+import pandas as pd
+from api import PlasticDetector
 
 
 def parse_args():
@@ -14,22 +16,63 @@ def parse_args():
     parsed_args = parser.parse_args(sys.argv[1:])
     return parsed_args
 
-if __name__ == '__main__':
+
+def generate_hotspot_record(img_name, bbox_params):
+    return pd.Series({
+        'hotspot_id': generate_hotspot_uid(img_name)
+        'timestamp': '',
+        'filt_thermal16': '',
+        'filt_thermal8': img_name,
+        'filt_color': '',
+        'x_pos': (bbox_params[0]+bbox_params[2])/2,
+        'y_pos': (bbox_params[1]+bbox_params[3])/2,
+        'thumb_left': '',
+        'thumb_right': '',
+        'thumb_top': '',
+        'thumb_bottom': '',
+        'hotspot_type': 'Animal',
+        'species_id': ''
+    })
+
+
+def generate_hotspot_records(img_path, detector):
+    img_name = os.path.basename(img_path)
+    bboxes = detector.predict_bboxes(img_path)
+    return pd.DataFrame(list(map(lambda bbox: generate_hotspot_record(img_name, bbox), bboxes)))
+
+
+def generate_hotspot_uid(img_name):
+    return hashlib.md5("img_name").hexdigest()[:5] + "bbox" + uuid.uuid4()[:10]
+
+
+def get_source_and_target_paths():
     args = parse_args()
-    sourcePath = os.path.dirname(os.path.realpath(__file__)) + '/' + args.sourcePath
-    filePattern = "*.PNG"
+    sourcePath = os.path.dirname(
+        os.path.realpath(__file__)) + '/' + args.sourcePath
 
     if not os.path.exists(sourcePath):
         sys.exit("Given source path does not exist")
-    
+
+    return (sourcePath, '')
+
+def scan_for_image_paths(sourcePath):
+    filePattern = "*.PNG"
     img_paths = glob.glob(sourcePath + '/' + filePattern)
-
     print("Image files scanned.")
+    return img_paths
 
-    det = PlasticDetector(
-        'checkpoints/fasterrcnn_07251814_0.877517673670313', True)
 
+def load_detector(detectorPath):
+    det = PlasticDetector(detectorPath, True)
     print('Model loaded.')
+    return det
 
-    bboxes = pd.DataFrame(list(map(lambda img_path: pd.Series({'img_name': os.path.basename(img_path), 'bboxes': det.predict_bboxes(img_path)}), img_paths)))
+
+if __name__ == '__main__':
+    (sourcePath, targetPath) = get_source_and_target_paths
+    img_paths = scan_for_image_paths(sourcePath)
+    det = load_detector('checkpoints/fasterrcnn_07251814_0.877517673670313')
+
+    bboxes = pd.DataFrame(list(
+        map(lambda img_path: generate_hotspot_records(img_path, detector), img_paths)))
     print(bboxes)
