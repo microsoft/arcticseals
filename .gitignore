@@ -438,3 +438,6 @@ ASALocalRun/
 
 # Top level temp folder for scratch stuff
 /temp/
+/data/image_registration_sandbox/CHESS_FL1_C_160407_234502.428_THERM-16BIT_aligned.JPG
+/data/image_registration_sandbox/CHESS_FL1_C_160407_234502.428_THERM-8BIT.JPG
+/src/image_registration/python/matches.jpg
