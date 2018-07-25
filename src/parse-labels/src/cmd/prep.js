@@ -18,7 +18,7 @@ module.exports.registerCommand = (program) => {
         .description('Prepare label and image data for training')
         .action((file, command) => {
             if (!command.imgtype) {
-                command.imgtype = 'thermal';
+                command.imgtype = 'thermal8';
             }
             let imageMap = imageUtil.getImageMap(command.imgdirs.split(','), command.imgtype);
             let filters = csvUtil.parseFilters(command.filters);
@@ -37,8 +37,10 @@ module.exports.registerCommand = (program) => {
             }
             let stats = csvUtil.getCsvStats(records);
             let images;
-            if (command.imgtype == 'thermal') {
+            if (command.imgtype == 'thermal16') {
                 images = Array.from(stats.thermal16Stats.uniqueImages.keys());
+            } else if (command.imgtype == 'thermal8') {
+                images = Array.from(stats.thermal8Stats.uniqueImages.keys());
             } else {
                 images = Array.from(stats.colorStats.uniqueImages.keys());
             }
@@ -55,7 +57,7 @@ module.exports.registerCommand = (program) => {
                 imageUtil.copyImageFilesToDir(images, imageMap, command.outdir);
                 if (command.bboxes) {
                     for (let image of images) {
-                        let uniqueImages = command.imgtype == 'thermal' ? stats.thermal16Stats.uniqueImages : stats.colorStats.uniqueImages;
+                        let uniqueImages = command.imgtype == 'thermal16' ? stats.thermal16Stats.uniqueImages : (command.imgtype == 'thermal8' ? stats.thermal8Stats.uniqueImages : stats.colorStats.uniqueImages);
                         let bboxes = uniqueImages.get(image).bboxes;
                         let bboxesWriter = fs.createWriteStream(path.join(command.outdir, `${image.slice(0, -4)}.bboxes.tsv`));
                         let bboxesLabelWriter = fs.createWriteStream(path.join(command.outdir, `${image.slice(0, -4)}.bboxes.labels.tsv`));
