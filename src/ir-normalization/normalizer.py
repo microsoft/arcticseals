@@ -1,10 +1,12 @@
 """Functions for transforming 16-bit thermal images into 8-bits"""
 # Imports
 import argparse
+import datetime
 import os
 import sys
 import numpy as np
 from PIL import Image
+
 
 # Functions
 def lin_normalize_image(image_array, bottom=None, top=None):
@@ -104,8 +106,12 @@ def get_scaling_values(filename, num_rows):
         bottom: int, number that maps to 0 in scaled image
         top: int, number that maps to 255 in scaled image
     """
-    camera_pos = parse_filename(filename)
+    camera_pos = parse_filename(filename) 
     
+    # camera_pos S and default
+    bottom = 51000
+    top = 57500
+
     if camera_pos == "P":
         if num_rows == 512:
             bottom = 53500
@@ -113,12 +119,11 @@ def get_scaling_values(filename, num_rows):
         elif num_rows == 480:
             bottom = 50500
             top = 58500
+        else:
+            print('Unknown camera size for file %s' % filename)
     elif camera_pos == "C":
         bottom = 50500
         top = 58500
-    else: #S and default
-        bottom = 51000
-        top = 57500
 
     return bottom, top
 
@@ -130,7 +135,16 @@ def main(sys_args):
     print('Found {} files for processing'.format(len(input_files)))
     
     successful = 0
+    prev_time = datetime.datetime.now()
     for index, in_file in enumerate(input_files):
+        if index % 1000 == 0:
+            cur_time = datetime.datetime.now()
+            time_diff = cur_time - prev_time
+            time_est = time_diff * (len(input_files) - index) / 1000
+            print('%d of %d -- %.2f sec. Time remaining: %s' % 
+                (index, len(input_files), time_diff.total_seconds(), time_est))
+            prev_time = cur_time
+
         try:
             cur_data = np.array(Image.open(in_file))
             bottom, top = get_scaling_values(in_file, cur_data.shape[0])
@@ -139,10 +153,11 @@ def main(sys_args):
             save_im = Image.fromarray(normalized)
             save_im.save(output_files[index])
             successful += 1
-        except IOError:
+        except:
             print('Unable to load {}'.format(output_files[index]))
 
     print('Completed converting {} files'.format(successful))
 
 if __name__ == "__main__":
     main(sys.argv)
+

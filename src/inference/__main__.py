@@ -27,7 +27,7 @@ def validate(folder):
     print('Validating...')
 
 cwd = os.getcwd()
-convertThermal16bitTo8bit(cwd)
+#convertThermal16bitTo8bit(cwd)
 detectHotspots(cwd)
 registerThermalAndColorImages(cwd)
 extractThumbnails(cwd)
