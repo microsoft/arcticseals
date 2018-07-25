@@ -36,9 +36,9 @@ I had an image that didn't work for me on Ubuntu 16, so I followed the steps her
 	
 # Run the image with an interactive shell, mounting your data and code directories
 	
-This assumes you've put the data in /data/sealdata, and that you're currently in the repo directory.
+This assumes you've put the data in /sealdata, and that you're currently in the repo directory.
 	
-    sudo nvidia-docker run -it -v /data/sealdata:/datadrive -v $(pwd):/code --ipc=host -p 8097:8097 sealdetection
+    sudo nvidia-docker run -it -v /sealdata:/datadrive -v $(pwd):/code --ipc=host -p 8097:8097 sealdetection
 
 
 # Download the base (vgg16) model file
