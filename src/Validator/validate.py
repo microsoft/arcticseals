@@ -21,7 +21,7 @@ classificationTrue = 0
 classificationFalse = 0
 expectedTruePositives = 0
 
-with open('validationWithoutAnomalies.csv', 'r') as answers:
+with open('outputExample.csv', 'r') as answers:
     # col 5 and 6 = hotspot
     # col 7-10 = registration
     # col 12 = species_id 
