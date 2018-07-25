@@ -11,7 +11,7 @@ module.exports.registerCommand = (program) => {
         .command('prep <file>')
         .option('-f, --filters <conditions>', 'Comma-separated list of filter conditions, e.g. hotspot_type=Animal')
         .option('-i, --imgdirs <dirs>', 'Comma-separated list of file paths containing images')
-        .option('-t, --imgtype <type>', '"thermal" or "color" (defaults to "thermal")')
+        .option('-t, --imgtype <type>', '"thermal16", "thermal8" or "color" (defaults to "thermal8")')
         .option('-n, --num <hotspots>', 'Number of hotspots to (non-randomly) select for inclusion')
         .option('-b, --bboxes', 'Whether to output .bboxes[.labels].tsv files next to images')
         .option('-o, --outdir <dir>', 'Destination for output files')
@@ -24,7 +24,7 @@ module.exports.registerCommand = (program) => {
             let filters = csvUtil.parseFilters(command.filters);
             let imagesNotFound = 0;
             filters.push((record) => {
-                let image = record[command.imgtype == 'thermal' ? 'filt_thermal16' : 'filt_color'];
+                let image = record[command.imgtype == 'thermal16' ? 'filt_thermal16' : (command.imgtype == 'thermal8' ? 'filt_thermal8' : 'filt_color')];
                 if (imageMap.has(image)) {
                     return true;
                 }

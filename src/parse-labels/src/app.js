@@ -8,6 +8,7 @@ require('./cmd/split').registerCommand(program);
 require('./cmd/prep').registerCommand(program);
 require('./cmd/thumbs').registerCommand(program);
 require('./cmd/distill').registerCommand(program);
+require('./cmd/normalize').registerCommand(program);
 
 program
     .command('help <command>')
