@@ -34,17 +34,9 @@ module.exports.registerCommand = (program) => {
             let recordsIncludedNotInMaster = 0;
             for (let record of records) {
                 if (imageMap.has(record.filt_thermal16)) {
-                    if (allExcludeStats.uniqueHotspots.has(record.hotspot_id)) {
+                    if (allExcludeStats.uniqueHotspots.has(record.hotspot_id) || !imageMap.has(record.filt_color)) {
                         recordsExcluded++;
                     } else {
-                        if (!imageMap.has(record.filt_color)) {
-                            record.filt_color = '',
-                            record.thumb_left = 0,
-                            record.thumb_top = 0,
-                            record.thumb_right = 0,
-                            record.thumb_bottom = 0
-                            recordsIncludedWithoutColor++;
-                        }
                         distilledRecords.push(record);
                         recordsIncluded++;
                     }
@@ -59,6 +51,6 @@ module.exports.registerCommand = (program) => {
                 csvUtil.writeCsvRecord(writer, distilledRecord);
             }
 
-            console.log(`${recordsIncluded} records included (${recordsIncludedWithoutColor} without color), ${recordsExcluded} records excluded.`);
+            console.log(`${recordsIncluded} records included, ${recordsExcluded} records excluded.`);
     });
 }
