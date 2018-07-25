@@ -25,7 +25,7 @@ def lin_normalize_image(image_array, bottom=None, top=None):
     scaled_image[scaled_image < 0] = 0
     scaled_image[scaled_image > 1] = 1
 
-    scaled_image = np.floor(scaled_image * 256).astype(np.uint8)
+    scaled_image = np.floor(scaled_image * 255).astype(np.uint8)
 
     return scaled_image
 
