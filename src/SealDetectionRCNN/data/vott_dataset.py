@@ -60,7 +60,7 @@ class VottBboxDataset:
         # set up the filenames and annotations
         old_dir = os.getcwd()
         os.chdir(root)
-        self.impaths = sorted(glob.glob('*.PNG'))
+        self.impaths = sorted(glob.glob('*.JPG'))
         print('Found {} images'.format(len(self.impaths)))
         self.image_ids = list(range(len(self.impaths)))
         
