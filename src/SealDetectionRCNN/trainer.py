@@ -8,6 +8,7 @@ import torch as t
 from torch.autograd import Variable
 from utils import array_tool as at
 from utils.vis_tool import Visualizer
+import numpy as np
 
 from utils.config import opt
 from torchnet.meter import ConfusionMeter, AverageValueMeter
@@ -135,10 +136,11 @@ class FasterRCNNTrainer(nn.Module):
             self.rpn_sigma)
 
         # NOTE: default value of ignore_index is -100 ...
+        rpn_class_weights = t.FloatTensor(1.0 / np.unique(gt_rpn_label, return_counts=True)[1][1:])
         if opt.use_cuda:
-            rpn_cls_loss = F.cross_entropy(rpn_score, gt_rpn_label.cuda(), ignore_index=-1)
+            rpn_cls_loss = F.cross_entropy(rpn_score, gt_rpn_label.cuda(), ignore_index=-1, weight=rpn_class_weights.cuda())
         else:
-            rpn_cls_loss = F.cross_entropy(rpn_score, gt_rpn_label, ignore_index=-1)
+            rpn_cls_loss = F.cross_entropy(rpn_score, gt_rpn_label, ignore_index=-1, weight=rpn_class_weights)
         _gt_rpn_label = gt_rpn_label[gt_rpn_label > -1]
         _rpn_score = at.tonumpy(rpn_score)[at.tonumpy(gt_rpn_label) > -1]
         self.rpn_cm.add(at.totensor(_rpn_score, False), _gt_rpn_label.data.long())
@@ -160,11 +162,12 @@ class FasterRCNNTrainer(nn.Module):
             gt_roi_loc,
             gt_roi_label.data,
             self.roi_sigma)
-
+        
+        class_weights = t.FloatTensor(1.0 / np.unique(gt_roi_label, return_counts=True)[1])
         if opt.use_cuda:
-            roi_cls_loss = nn.CrossEntropyLoss()(roi_score, gt_roi_label.cuda())
+            roi_cls_loss = nn.CrossEntropyLoss(weight=class_weights.cuda())(roi_score, gt_roi_label.cuda())
         else:
-            roi_cls_loss = nn.CrossEntropyLoss()(roi_score, gt_roi_label)
+            roi_cls_loss = nn.CrossEntropyLoss(weight=class_weights)(roi_score, gt_roi_label)
 
         self.roi_cm.add(at.totensor(roi_score, False), gt_roi_label.data.long())
 
