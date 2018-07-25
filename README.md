@@ -8,8 +8,8 @@ To get write access to this repo, submit a request [here](https://github.com/org
 
 The `data` directory contains the following dataset files from NOAA: 
 
-* `training.csv` (6,624 records): Hotspot detection data for which we have all corresponding imagery data (see below). Currently all of these hotspots refer to images in dataset ArcticSealsData01. Can be used for training and hyperparameter tuning (see `parse-labels` in the `scripts` directory to make it easy to split off a dev set).
-* `validation.csv` (272 records): Reserved for final validation and should **not** be used for training or tuning.
+* `train.csv` (5,256 records): Hotspot detection data for which we have all corresponding imagery data (see below). Currently all of these hotspots refer to images in dataset ArcticSealsData01.
+* `test.csv` (1,368 records): Same format and distrbution of `train.csv`, suitable for cross-validation. 
 
 Each record in the CSV files refers to a hotspot that the NOAA thermal detection system picked up and that was classified by a human into either "Animal" (true positive) or "Anomaly" (false positive). Each hotspot is unique (no duplicates). The column schema is as follows:
 
