@@ -5,9 +5,8 @@ python train.py train \
 --dataset='vott' \
 --train_image_dir='/datadrive/train/' \
 --val_image_dir='/datadrive/test/' \
---num_epochs=2000 \
---epoch_decay=1500 \
---plot_every=2 \
---max_size=1920 \
---min_size=1080 
+--num_epochs=200 \
+--epoch_decay=150 \
+--plot_every=20 \
+--max_size=5000
 #--load_path='checkpoints/fasterrcnn_07101509'
