@@ -125,6 +125,7 @@ def main():
     fileIR = "../../../data/image_registration_sandbox/CHESS_FL1_C_160407_234502.428_THERM-16BIT.PNG"
     fileRGB = "../../../data/image_registration_sandbox/___CHESS_FL1_C_160407_234502.428_COLOR-8-BIT.JPG"
     fileAligned = "../../../data/image_registration_sandbox/CHESS_FL1_C_160407_234502.428_THERM-16BIT_aligned.JPG"
+    fileRGBAAligned = "../../../data/image_registration_sandbox/___CHESS_FL1_C_160407_234502.428_COLOR-8-BIT_rgba_aligned.png"
 
     # Read the images to be aligned
     img = imreadIR(fileIR)
@@ -148,6 +149,12 @@ def main():
 
     # write warped IR image
     cv2.imwrite(fileAligned, imgWarped)
+
+    # must write as .png to save with alpha channel, warning this will be a big file
+    b_channel, g_channel, r_channel = cv2.split(imgRef)
+    imgBGRA = cv2.merge((b_channel, g_channel, r_channel, imgWarped))
+
+    cv2.imwrite(fileRGBAAligned, imgBGRA)
 
     # display everything
     plt.figure()
