@@ -40,7 +40,7 @@ def generate_hotspot_records(img_path, detector):
     return pd.DataFrame(list(map(lambda bbox: generate_hotspot_record(img_name, bbox), bboxes)))
 
 
-def generate_hotspot_uid(img_name)
+def generate_hotspot_uid(img_name):
     return str(uuid.uuid4())
 
 
@@ -68,10 +68,10 @@ def load_detector(detectorPath):
 
 
 if __name__ == '__main__':
-    (sourcePath, targetPath) = get_source_and_target_paths
+    (sourcePath, targetPath) = get_source_and_target_paths()
     img_paths = scan_for_image_paths(sourcePath)
     detector = load_detector('checkpoints/fasterrcnn_07251814_0.877517673670313')
 
     bboxes = pd.concat(list(
         map(lambda img_path: generate_hotspot_records(img_path, detector), img_paths)), axis=0)
-    print(bboxes)
+    bboxes.to_csv("hotspots.csv")
