@@ -17,7 +17,7 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     sourcePath = os.path.dirname(os.path.realpath(__file__)) + '/' + args.sourcePath
-    filePattern = "*.png"
+    filePattern = "*.PNG"
 
     if not os.path.exists(sourcePath):
         sys.exit("Given source path does not exist")
@@ -31,5 +31,5 @@ if __name__ == '__main__':
 
     print('Model loaded.')
 
-    bboxes = pd.DataFrame(img_paths.map(lambda img_paths: pd.Series({'img_name': os.path.basename(img_path), 'bboxes': det.predict_bboxes(img_path)})))
+    bboxes = pd.DataFrame(list(map(lambda img_path: pd.Series({'img_name': os.path.basename(img_path), 'bboxes': det.predict_bboxes(img_path)}), img_paths)))
     print(bboxes)
