@@ -106,8 +106,12 @@ class PlasticDetector:
         box_filter = np.array(pred_scores[0]) > 0.7
         return pred_bboxes[0][box_filter], pred_labels[0][box_filter], pred_scores[0][box_filter]
 
-
-
+    def predict_bboxes(image_path):
+        img = PIL.Image.open(image_path)
+        print('Working on image {}'.format(image_path))
+        print(self.predict_image(img, 5))
+        pred_bboxes, pred_scores = self.predict_image(img, 1000)
+        return pred_bboxes
 
 if __name__ == '__main__':
     det = PlasticDetector('checkpoints/fasterrcnn_07122125_0.5273599762268979', True)
