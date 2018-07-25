@@ -128,6 +128,13 @@ const examineRecord = (r, stats) => {
         right: parseInt(r.x_pos) + margin,
         bottom: parseInt(r.y_pos) + margin
     });
+    stats.thermal8Stats.uniqueImages.get(r.filt_thermal8).bboxes.push({
+        label: r.hotspot_type,
+        left: parseInt(r.x_pos) - margin,
+        top: parseInt(r.y_pos) - margin,
+        right: parseInt(r.x_pos) + margin,
+        bottom: parseInt(r.y_pos) + margin
+    });
     stats.colorStats.uniqueImages.get(r.filt_color).bboxes.push({
         label: `${r.hotspot_type} (${r.species_id})`,
         left: parseInt(r.thumb_left),
