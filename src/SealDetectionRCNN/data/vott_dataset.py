@@ -60,7 +60,7 @@ class VottBboxDataset:
         # set up the filenames and annotations
         old_dir = os.getcwd()
         os.chdir(root)
-        self.impaths = sorted(glob.glob('*.PNG'))
+        self.impaths = sorted(glob.glob('*.JPG'))
         print('Found {} images'.format(len(self.impaths)))
         self.image_ids = list(range(len(self.impaths)))
         
@@ -69,24 +69,38 @@ class VottBboxDataset:
         self.bboxes = [[] for _ in self.image_ids]
         self.labels = [[] for _ in self.image_ids]
         self.class_names = []
+        empty_images = []
         for image_id, impath in enumerate(self.impaths):
-            bbox_labels = np.loadtxt(os.path.splitext(impath)[0] + '.bboxes.labels.tsv', dtype=str)
+            with open(os.path.splitext(impath)[0] + '.bboxes.labels.tsv', 'rt') as labelfile:
+                bbox_labels = labelfile.read().splitlines()
+                # Dirty hack: merging all animals for now
+                bbox_labels = ['Animal' for _ in bbox_labels]
             # BBox coords are stored in the format
             # x_min (of width axis) y_min (of height axis), x_max, y_max
             # Coordinate system starts in top left corner
             bbox_coords = np.loadtxt(os.path.splitext(impath)[0] + '.bboxes.tsv', dtype=np.int32)
             if len(bbox_coords.shape) == 1:
                 bbox_coords = bbox_coords[None,:]
-            if bbox_labels.size == 1:
-                bbox_labels = bbox_labels[None]
             assert len(bbox_coords) == len(bbox_labels)
+            img_file = os.path.join(self.root, self.impaths[image_id])
+            width,height = PIL.Image.open(img_file).size
             for i in range(len(bbox_coords)):
                 if bbox_labels[i] not in self.class_names:
                     self.class_names.append(bbox_labels[i])
                 bb = bbox_coords[i]
-                # In this framework, we need ('ymin', 'xmin', 'ymax', 'xmax') format
-                self.bboxes[image_id].append([bb[1],bb[0],bb[3],bb[2]])
-                self.labels[image_id].append(self.class_names.index(bbox_labels[i]))
+                if np.all(bb >= 0) and bb[0] <= width and bb[2] <= width and bb[1] <= height and bb[3] <= height:
+                    # In this framework, we need ('ymin', 'xmin', 'ymax', 'xmax') format
+                    self.bboxes[image_id].append([bb[1]+180,bb[0]+180,bb[3]-180,bb[2]-180])
+                    self.labels[image_id].append(self.class_names.index(bbox_labels[i]))
+            if len(self.bboxes[image_id]) == 0:
+                empty_images.append(image_id)
+        for empty_image_id in empty_images[::-1]:
+            print("Deleting image {} as all bounding boxes are outside".format(empty_image_id) + \
+                     "of the image or no bounding boxes are provided")
+            del self.impaths[empty_image_id]
+            del self.image_ids[empty_image_id]
+            del self.bboxes[empty_image_id]
+            del self.labels[empty_image_id]
         
         self.classes = list(range(len(self.class_names)))
         # print out some stats
@@ -112,30 +126,22 @@ class VottBboxDataset:
             for idx in tqdm(range(len(self.image_ids))):
                 img_file = os.path.join(self.root, self.impaths[idx])
                 width,height = PIL.Image.open(img_file).size
-                
-                # For each bounding box on this image...
-                for iBox,bbox in enumerate(self.bboxes[idx]):
-                    
-                    # Clip everything to be >= 0
-                    bbox = [0 if i < 0 else i for i in bbox]
-                    
-                    # Clip coordinates to be inside the image
-                    bbox[1] = min(bbox[1],width)
-                    bbox[3] = min(bbox[3],width)
-                    bbox[0] = min(bbox[0],height)
-                    bbox[2] = min(bbox[2],height)
-                    
-                    # Make sure bounding boxes are non-zero area
+                assert len(self.bboxes[idx]) > 0
+                for bbox in self.bboxes[idx]:
+                    assert bbox[1] <= width 
+                    assert bbox[3] <= width
+                    assert bbox[0] <= height
+                    assert bbox[2] <= height
                     assert bbox[3] > bbox[1]
                     assert bbox[2] > bbox[0]
-                    
-                    self.bboxes[idx][iBox] = bbox
+                    # Make sure all are greater equal 0
+                    assert np.all(np.array(bbox) >= 0)
 
         except:
             extype, value, tb = sys.exc_info()
             traceback.print_exc()
-            import ipdb
-            ipdb.post_mortem(tb)
+            import pdb
+            pdb.post_mortem(tb)
             
     def get_class_count(self):
         return np.max(self.classes).tolist() + 1
