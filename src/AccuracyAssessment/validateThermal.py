@@ -10,6 +10,14 @@ the metrics compute the distance and false positives
 to dos: 
 Note: outputExample and validationWithoutAnomalies are identical right now
 '''
+# const:
+assessmentResultsOutputFile = 'assessmentResults.txt'
+groundTruthFile = 'validationWithoutAnomalies.csv'
+classificationResultsFile = 'classificationResults.csv'
+# The average size of seal on thermal image is about 2 by 5 pixels. Assume hot spot detedted within 
+# two times the size of a seal is a success detection.
+sealSizeInPixelsOnThermal = 4
+locationOffsetTolerance = 8
 
 # metrics:
 falsePositives = 0
@@ -25,7 +33,7 @@ registrationTrue = 0
 def getKey(item):
     return item[5] + item[7]
     
-with open('validationWithoutAnomalies.csv', 'r') as answers:
+with open(groundTruthFile, 'r') as answers:
     # col 5 and 6 = hotspot
     # col 7-10 = registration
     # col 12 = species_id 
@@ -45,7 +53,7 @@ with open('validationWithoutAnomalies.csv', 'r') as answers:
         else:
             expectedDict[photoID] = [i]
                 
-    with open('outputExample.csv', 'r') as results:
+    with open(classificationResultsFile, 'r') as results:
         res = csv.reader(results)
         resList1 = list(res)
         # filter out anomalies
@@ -71,14 +79,13 @@ with open('validationWithoutAnomalies.csv', 'r') as answers:
             else:
                 resRows = resDict.get(key)
                 expectedRows = expectedDict.get(key)
-            # expectedRows.sort(key=lambda row: int(row[5]) + int(row[7])
 
                 lengthDiff = len(resRows) - len(expectedRows)
                 minLength = min(len(resRows), len(expectedRows))
 
 
                 if (lengthDiff >= 0): 
-                    # TODO: updated caculation method when ground truth include "Anormaly"
+                    # TODO: updated caculation method when ground truth includes "Anormaly"
                     falsePositives+=lengthDiff
                 else:
                     falseNegatives+=lengthDiff
@@ -118,7 +125,7 @@ with open('validationWithoutAnomalies.csv', 'r') as answers:
                     hotSpotDistances.append(dist)
                     # The average size of seal on thermal image is about 2 by 5 pixels. Assume hot spot detedted within 
                     # the size of a seal is a success detection.
-                    if (dist < 3):
+                    if (dist < locationOffsetTolerance):
                         hotspotLocationTrue+=1
 
                     registrationDistances.append(dist2)
@@ -148,7 +155,7 @@ with open('validationWithoutAnomalies.csv', 'r') as answers:
         print("There was an registration accuracy of " + str(classificationTrue / len(registrationDistances)*100) + " percent.")
         
     # Print result to a file
-    with open('evaluationResults.txt', 'w') as f:
+    with open('assessmentResults.txt', 'w') as f:
         print("Number of hot spots found: " + str(len(resList)-1), file=f)
         print("Percent of hot spots found: " + str((classificationTrue + classificationFalse) / expectedTruePositives*100)  + " percent.", file=f)
         print("There were " + str(falsePositives) + " false positives.", file=f)
