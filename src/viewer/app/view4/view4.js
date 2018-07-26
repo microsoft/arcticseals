@@ -1,6 +1,6 @@
 'use strict';
 
-var app = angular.module('myApp.view3', ['ngRoute'])
+var app = angular.module('myApp.view4', ['ngRoute'])
 var artic, items;
 var getName = function(articI) {
 	var names = articI.filt_color.split(".");
@@ -9,23 +9,24 @@ var getName = function(articI) {
 };
 
 app.config(['$routeProvider', function($routeProvider) {
-  $routeProvider.when('/view3', {
-    templateUrl: 'view3/view3.html',
-    controller: 'View3Ctrl'
+  $routeProvider.when('/view4', {
+    templateUrl: 'view4/view4.html',
+    controller: 'View4Ctrl'
   });
 }])
 
-app.controller('View3Ctrl', function($scope) {
+app.controller('View4Ctrl', function($scope) {
 	$scope.items = [];
 
 	var json = null;
+
 	$.getJSON( "/data/training.json", function( data ) {
 		if (data.Artic !== 'undefined') {
-			artic = data.Artic;
-			var len = artic.length / 3;
+			var artic = data.Artic;
+			var len = artic.length / 2;
 			for(var i = 0; i < len; i++) {
-				var name = getName(artic[i]);
-				$scope.items.push({"idx": i, "file": "crop-img//" + name});
+				var articI = artic[i];
+				$scope.items.push({"idx": i, "color": "thumb-img//" + articI.filt_color, "thermal" : "thumb-thermal//" + articI.filt_thermal8});
 			}
 			$scope.$apply();
 		}
