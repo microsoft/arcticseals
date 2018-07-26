@@ -1,9 +1,9 @@
 ## Hotspot Classifier based on Random Forest Classifier
 
 This folder contains the code for training and applying a random forest classifier in sci-kit learn to the arcticseal data. The classifier uses Sci-Kit Learn's classifier class so they can easily be switched out to test other classifiers. We are also using PCA to project the raw data onto "eigen-seals" like the following table:
-Eigen Seal 1 | Eigen Seal 2
------------- | ------------
-![alt text](./images/eigenseal1.png "Eigen-Seal 1") | ![alt text](./images/eigenseal2.png "Eigen-Seal 2") 
+|Eigen Seal 1 | Eigen Seal 2|
+|------------ | ------------|
+|![alt text](./images/eigenseal1.png "Eigen-Seal 1") | ![alt text](./images/eigenseal2.png "Eigen-Seal 2")|
 
 ## Classifying
 The classification script supports two modes for processing images: command line and as a library import to another script.
@@ -18,7 +18,7 @@ The script requires three flags from the command line with an optional fourth:
 The classified CSV file will have the column `hotspot_type` filled in with either "Anamoly" or "Animal" depending on the classification. It will also fill in the column `ir_confidence` that contains the confidence that the classifier has in its decision.
 
 An example of running the script is shown below:
-```python
+```bash
 python hotspot_classifier.py --datadir ./ArcticSealsData01_Thermal_N/ --datafile ../arcticseals/data/test.csv --modelfile pca_rfc_model_20180725_154906.p
 ```
 
