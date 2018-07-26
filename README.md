@@ -19,7 +19,7 @@ Each record in the CSV files refers to a hotspot that the NOAA thermal detection
 * `filt_thermal8`: Filename of the 8-bit JPG containing the annotated FLIR image data (hotspots circled)
 * `filt_color`: Filename of the 8-bit JPG containing a color image taken at or near the same time as the thermal image. The timestamp encoded in the filename may be different from the thermal timestamp by up to 60 seconds (but typically less than 1 second).
 * `x_pos`/`y_pos`: Location of the hotspot in the thermal image
-* `thumb_*`: Bounding box of the hotspot in the color image. **NOTE**: some of these values are negative, which we are still working to clarify/understand
+* `thumb_*`: Bounding box of the hotspot in the color image. **NOTE**: some of these values are negative, as the bounding box is always 512x512 even if the hotspot is at the edge of the image.
 * `hotspot_type`: "Animal" or "Anomaly"
 * `species_id`: "Bearded Seal", "Ringed Seal", "UNK Seal", "Polar Bear" or "NA" (for anomalies)
 
