@@ -25,6 +25,7 @@ falsePositives = 0
 falseNegatives = 0
 hotSpotDistances = []
 registrationDistances = []
+truePositives = 0
 classificationTrue = 0
 classificationFalse = 0
 expectedTruePositives = 0
@@ -77,7 +78,7 @@ with open(groundTruthFile, 'r') as answers:
         for key in resDict:
             # if photo not in expected dictionary that means there were no animals in the entire photo so throw FalsePositive
             if key not in expectedDict:
-                falsePositives+=1
+                falsePositives+=len(resDict[key])
             else:
                 resRows = resDict.get(key)
                 expectedRows = expectedDict.get(key)
@@ -107,50 +108,53 @@ with open(groundTruthFile, 'r') as answers:
                 if (len(expectedRowsData) > 1):
                     expectedRowsData.sort(key=getSortKey)
 
-                for m in range(minLength):
-                    resRow = resRowsData[m]
-                    expectedRow = expectedRowsData[m]
+                for e in expectedRowsData:
+                    minDist = 99999999
+                    for r in resRowsData:
+                        if r[1] != 'MatchesGroundTruth':
+                            x1 = int(expectedRow[5])
+                            y1 = int(expectedRow[6])
+                            x2 = int(resRow[5])
+                            y2 = int(resRow[6])
+                            dist = math.hypot(x2 - x1, y2 - y1)
+                            if dist < minDist:
+                                minDist = dist
+                                minResRow = r
+                    
+                    # Was there a detected hotspot within tolerance of this ground truth hotspot?
+                    if minDist < locationOffsetTolerance:
+                        truePositives += 1
+                        minResRow[1] = 'MatchesGroundTruth' # Hackily reuse the "timestamp" field to indicate that we have a match
+                        if minResRow[13] == e[13]:
+                            classificationTrue += 1
+                        else
+                            classificationFalse += 1
 
-                    # 1 is expected values; 2 is ouput values. Both are location on the image
-                    x1 = int(expectedRow[5])
-                    y1 = int(expectedRow[6])
-                    x2 = int(resRow[5])
-                    y2 = int(resRow[6])
-                    dist = math.hypot(x2 - x1, y2 - y1)
-                    
-                    hotSpotDistances.append(dist)
-                    # The average size of seal on thermal image is about 2 by 5 pixels. Assume hot spot detedted within 
-                    # the size of a seal is a success detection.
-                    if (dist < locationOffsetTolerance):
-                        hotspotLocationTrue+=1
-                    
-                    # classification accuracy
-                    if (expectedRow[12] == resRow[12]):
-                        classificationTrue += 1 
+                for r in resRowsData:
+                    if r[1] != 'MatchesGroundTruth':
+                        falsePositives += 1
                     else:
-                        classificationFalse += 1
+                        if r[13] == 
+
 
     # Print results on screen
     print("Accuracy assessment for thermal image classification")
     print("Number of hot spots found: " + str(len(resList)-1))
-    print("Percent of hot spots found: " + str((classificationTrue + classificationFalse) / expectedTruePositives*100)  + " percent.")
+    print("Percent of hot spots found: " + str(truePositives / expectedTruePositives*100)  + " percent.")
     print("There were " + str(falsePositives) + " false positives.")
     print("There were " + str(falseNegatives) + " false negatives.")
-    if ((classificationTrue + classificationFalse) > 0):
+    if ((truePositives) > 0):
         print("There was a classification accuracy of " + str((classificationTrue / (classificationTrue + classificationFalse)) * 100) + " percent.")
-    if (len(hotSpotDistances) > 0):
-        print("There was an average hot spot distance of " + str(sum(hotSpotDistances) / len(hotSpotDistances)))        
-        print("There was an hot spot location detection accuracy of " + str(hotspotLocationTrue / len(hotSpotDistances)*100)  + " percent.")
             
     # Print result to a file
     with open('assessmentResults.txt', 'w') as f:
         print("Accuracy assessment for thermal image classification", file=f)
         print("Number of hot spots found: " + str(len(resList)-1), file=f)
-        print("Percent of hot spots found: " + str((classificationTrue + classificationFalse) / expectedTruePositives*100)  + " percent.", file=f)
+        print("Percent of hot spots found: " + str((truePositives) / expectedTruePositives*100)  + " percent.", file=f)
         print("There were " + str(falsePositives) + " false positives.", file=f)
         print("There were " + str(falseNegatives) + " false negatives.", file=f)
-        if ((classificationTrue + classificationFalse) > 0):
-            print("There was a classification accuracy of " + str((classificationTrue / (classificationTrue + classificationFalse)) * 100) + " percent.", file=f)
+        if ((truePositives) > 0):
+            print("There was a classification accuracy of " + str((truePositives / (truePositives)) * 100) + " percent.", file=f)
         if (len(hotSpotDistances) > 0):
             print("There was an average hot spot distance of " + str(sum(hotSpotDistances) / len(hotSpotDistances)), file=f)        
             print("There was an hot spot location detection accuracy of " + str(hotspotLocationTrue / len(hotSpotDistances)*100)  + " percent.", file=f)
