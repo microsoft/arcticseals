@@ -22,7 +22,7 @@ def generate_hotspot_record(img_name, bbox_params):
         'timestamp': '',
         'filt_thermal16': '',
         'filt_thermal8': img_name,
-        'filt_color': '',
+        'filt_color': img_name.replace('THERM', 'COLOR'),
         'x_pos': (bbox_params[0]+bbox_params[2])/2,
         'y_pos': (bbox_params[1]+bbox_params[3])/2,
         'thumb_left': '',
@@ -55,7 +55,7 @@ def get_source_and_target_paths():
     return (sourcePath, '')
 
 def scan_for_image_paths(sourcePath):
-    filePattern = "*.PNG"
+    filePattern = "*THERM-8B*.PNG"
     img_paths = glob.glob(sourcePath + '/' + filePattern)
     print("Image files scanned.")
     return img_paths
@@ -74,4 +74,5 @@ if __name__ == '__main__':
 
     bboxes = pd.concat(list(
         map(lambda img_path: generate_hotspot_records(img_path, detector), img_paths)), axis=0)
+    bboxes = bboxes.set_index('hotspot_id')
     bboxes.to_csv("hotspots.csv")
