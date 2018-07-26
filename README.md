@@ -25,7 +25,7 @@ Each record in the CSV files refers to a hotspot that the NOAA thermal detection
 
 ### Raw Hotspot Data
 
-In the `data` directory there is also a `raw.csv` (15,454 records) containing all hotspot detections from the NOAA 2016 survey flights (includes more seals but also more types of animals, more anomalies, hotspots marked as duplicates, etc.). **We do not have the imagery corresponding to all of these hotspots, only about 2.5TB out of 19TB.** We need someone to process this data into a cleaner set containing only non-duplicate hotspots for which we actually have data, and append it to training.csv in the schema of that file.
+In the `data` directory there is also a `raw.csv` (15,454 records) containing all hotspot detections from the NOAA 2016 survey flights (includes more seals but also more types of animals, more anomalies, hotspots marked as duplicates, etc.). **We do not yet have the imagery corresponding to all of these hotspots, only about 2.5TB out of 19TB.**
 
 ## Imagery
 
