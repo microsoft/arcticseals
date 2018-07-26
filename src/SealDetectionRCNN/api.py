@@ -109,7 +109,6 @@ class PlasticDetector:
     def predict_bboxes(self, image_path):
         img = PIL.Image.open(image_path)
         print('Working on image {}'.format(image_path))
-        print(self.predict_image(img, 5))
         pred_bboxes, pred_scores = self.predict_image(img, 1000)
         return pred_bboxes
 

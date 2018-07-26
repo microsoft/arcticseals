@@ -1,6 +1,5 @@
 import sys
 import uuid
-import hashlib
 import os
 import glob
 import argparse
@@ -19,7 +18,7 @@ def parse_args():
 
 def generate_hotspot_record(img_name, bbox_params):
     return pd.Series({
-        'hotspot_id': generate_hotspot_uid(img_name)
+        'hotspot_id': generate_hotspot_uid(img_name),
         'timestamp': '',
         'filt_thermal16': '',
         'filt_thermal8': img_name,
@@ -42,7 +41,7 @@ def generate_hotspot_records(img_path, detector):
 
 
 def generate_hotspot_uid(img_name):
-    return hashlib.md5("img_name").hexdigest()[:5] + "bbox" + uuid.uuid4()[:10]
+    return str(uuid.uuid4())
 
 
 def get_source_and_target_paths():
@@ -69,10 +68,10 @@ def load_detector(detectorPath):
 
 
 if __name__ == '__main__':
-    (sourcePath, targetPath) = get_source_and_target_paths
+    (sourcePath, targetPath) = get_source_and_target_paths()
     img_paths = scan_for_image_paths(sourcePath)
-    det = load_detector('checkpoints/fasterrcnn_07251814_0.877517673670313')
+    detector = load_detector('checkpoints/fasterrcnn_07251814_0.877517673670313')
 
-    bboxes = pd.DataFrame(list(
-        map(lambda img_path: generate_hotspot_records(img_path, detector), img_paths)))
-    print(bboxes)
+    bboxes = pd.concat(list(
+        map(lambda img_path: generate_hotspot_records(img_path, detector), img_paths)), axis=0)
+    bboxes.to_csv("hotspots.csv")

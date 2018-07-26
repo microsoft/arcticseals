@@ -1,7 +1,7 @@
 ## IR Image Normalization 
 
 This directory contains the code for normalizing 16-bit IR images into 8-bit IR images. This is being done through a linear transformation based on each camera used during the image campaign. The normalization is done as follows: 
-`normalized_image = (original_image - bottom) / (top - bottom) * 256`
+`normalized_image = (original_image - bottom) / (top - bottom) * 255`
 Where:
 * original_image is the data from the 16 bit image
 * bottom is the value that is mapped to zero in the normalization
