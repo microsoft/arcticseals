@@ -2,7 +2,7 @@
 
 This is the workspace for the Microsoft 2018 OneWeek Hackathon project [Find Arctic Seals with Deep Learning](https://garagehackbox.azurewebsites.net/hackathons/1214/projects/70402). Other background materials (presentations, etc.) can be found in our [Arctic Seals Hackathon Team](https://teams.microsoft.com/l/team/19%3adfaf4e05a29741fe8a2dc3cf8d0c8f57%40thread.skype/conversations?groupId=6cbb37ab-68c8-408e-9e7e-a3a87706dfe5&tenantId=72f988bf-86f1-41af-91ab-2d7cd011db47).
 
-To get write access to this repo, submit a request [here](https://github.com/orgs/Microsoft/teams/arcticseals/members) (note that you must already be signed into GitHub with a 2FA-enabled account, otherwise you'll just get a 404).
+To get write access to this repo, submit a request [here](https://github.com/orgs/Microsoft/teams/arcticseals/members).
 
 ## Data
 
