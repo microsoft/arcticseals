@@ -37,6 +37,6 @@ Make sure that the source path that is passed is relative to the your current di
 
 The code will generate the file hotspots.csv in the local directory. 
 
-*TODO*: allow the user to specify the designated output file. 
+**TODO**: allow the user to specify the designated output file. 
 
 
