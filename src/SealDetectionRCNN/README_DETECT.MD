@@ -1,6 +1,6 @@
 # About 
 
-The detect.py script takes as its only command-line argument a path to a directory containing .PNG files that are supposed to be 8-bit normalized thermal images. The script scans this directory runs hotspot detection on the images and produces a file hotspots.csv containing all the detected hotspots together with relevant metadata as speficied by the corresponding Wiki page on the Teams channel:
+The detect.py script takes as its only command-line argument a path to a directory containing .PNG files that are supposed to be 8-bit normalized thermal images (only files matching the mask `*THERM-8B*.PNG` are processed). The script scans this directory runs hotspot detection on the images and produces a file hotspots.csv containing all the detected hotspots together with relevant metadata as speficied by the corresponding Wiki page on the Teams channel:
 
 ```
 hotspots.csv (using same format as the CSVs in the repo's /data dir) containing candidate hotspots:
