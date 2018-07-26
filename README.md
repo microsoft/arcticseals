@@ -59,17 +59,11 @@ Finally, if you want to use [Azure Storage Explorer](https://azure.microsoft.com
 
 ## Code
 
-The project is meant to accomodate many different approaches, frameworks, languages, etc. (though it is somewhat biased towards  Windows to maximize collaboration, since it is likely the lowest common dev machine denominator for all project members - though you're free to check in Mac/Linux specific code if that's how you roll).
-
-### Prerequisites
-
-This section lists the one-time installations of core tools that the project depends on. As you add code that requires certain runtimes or what-not, please add them to this list:
-
-* Node.js (https://nodejs.org/en/)
+The project is meant to accomodate many different approaches, frameworks, languages, etc. Linux is the primary supported dev environment, though some GUI tools are Windows-only.
 
 ### Organization
 
-You are welcome to add whatever code you like to this repo, but please follow these guidelines:
+Hackathon members are welcome to add whatever code you like to this repo, but please follow these guidelines:
 
 * Put your source code in its own directory inside the `src` directory.
 * Add a `README.md` file to your code directory explaining what your code does and how it works.
