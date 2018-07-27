@@ -1,6 +1,7 @@
 import csv
 import math 
 from collections import defaultdict
+import numpy as np
 
 '''
 about:
@@ -135,6 +136,7 @@ with open(groundTruthFile, 'r') as grountTruth:
                                 minResRow = r
                     
                     # Was there a detected hotspot within tolerance of this ground truth hotspot?
+                    hotSpotDistances.append(minDist)
                     if minDist < locationOffsetTolerance:
                         truePositivesLM+=1
                         minResRow[1] = 'MatchesGroundTruth' # Hackily reuse the 'timestamp' field to indicate that we have a match
@@ -167,6 +169,12 @@ with open(groundTruthFile, 'r') as grountTruth:
     print('False positive count: {}'.format(falsePositivesLM))
     print('False negative count: {}'.format(falseNegativesLM))
 
+    print('\n')
+    print('Location offset for hot spots on thermal images')
+    print('10th percentile: {} pixles'.format(np.percentile(hotSpotDistances, 10)))
+    print('50th percentile: {} pixles'.format(np.percentile(hotSpotDistances, 50)))
+    print('90th percentile: {} pixles'.format(np.percentile(hotSpotDistances, 90)))
+
     # Print result to a file
     with open('assessmentResults.txt', 'w') as f:
         print('Accuracy assessment for hot spot detection on thermal images', file=f)
@@ -183,4 +191,10 @@ with open(groundTruthFile, 'r') as grountTruth:
         print('True positive(count): {}      True positve(%): {}%'.format(truePositivesLM, str(truePositivesLM / groundTruthPositives * 100)), file=f)
         print('False positive count: {}'.format(falsePositivesLM), file=f)
         print('False negative count: {}'.format(falseNegativesLM), file=f)
+
+        print('\n'*3, file=f)
+        print('Location offset for hot spots on thermal images', file=f)
+        print('10th percentile: {} pixles'.format(np.percentile(hotSpotDistances, 10)), file=f)
+        print('50th percentile: {} pixles'.format(np.percentile(hotSpotDistances, 50)), file=f)
+        print('90th percentile: {} pixles'.format(np.percentile(hotSpotDistances, 90)), file=f)
 
