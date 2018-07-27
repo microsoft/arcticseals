@@ -17,6 +17,17 @@ def detectHotspots(folder):
 def registerThermalAndColorImages(folder):
     print('Registering thermal and color images...')
 
+    import sys
+    sys.path.append('../image_registration/ir_to_rgb_registration')
+    import image_registration
+
+    file = folder + '\\..\\..\\data\\test.csv'
+    fileOut = folder + '\\..\\..\\data\\testOut.csv'
+    folderImages = folder + '\\..\\..\\data\\images\\'
+
+    image_registration.registerThermalAndColorImages(file, fileOut, folderImages)
+
+
 def extractThumbnails(folder):
     print('Extracting hotspot thumbnails from color images...')
 
