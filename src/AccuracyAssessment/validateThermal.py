@@ -153,13 +153,15 @@ with open(groundTruthFile, 'r') as grountTruth:
 
     # Print results on screen
     print('Accuracy assessment for hot spot detection on thermal images')
+    print('Number of hot spots in grount truth: {}'.format(groundTruthPositives))
     print('Number of hot spots found: {}'.format(str(len(resList)-1)))
     print('True positive(count): {}      True positve(%): {}%'.format(truePositives, str(truePositives / groundTruthPositives * 100)))
     print('False positive count: {}'.format(falsePositives))
     print('False negative count: {}'.format(falseNegatives))
-    print('\n'*2)
+    print('\n')
 
     print('Accuracy assessment for hot spot detection with LOCATION MATCH on thermal images')
+    print('Number of hot spots in ground truth: {}'.format(groundTruthPositives))
     print('Number of hot spots found: {}'.format(str(len(resList)-1)))
     print('True positive(count): {}      True positve(%): {}%'.format(truePositivesLM, str(truePositivesLM / groundTruthPositives * 100)))
     print('False positive count: {}'.format(falsePositivesLM))
@@ -168,6 +170,7 @@ with open(groundTruthFile, 'r') as grountTruth:
     # Print result to a file
     with open('assessmentResults.txt', 'w') as f:
         print('Accuracy assessment for hot spot detection on thermal images', file=f)
+        print('Number of hot spots in ground truth: {}'.format(groundTruthPositives), file=f)
         print('Number of hot spots found: {}'.format(str(len(resList)-1)), file=f)
         print('True positive(count): {}      True positve(%): {}%'.format(truePositives, str(truePositives / groundTruthPositives * 100)), file=f)
         print('False positive count: {}'.format(falsePositives), file=f)
@@ -175,6 +178,7 @@ with open(groundTruthFile, 'r') as grountTruth:
         print('\n'*3, file=f)
 
         print('Accuracy assessment for hot spot detection with LOCATION MATCH on thermal images', file=f)
+        print('Number of hot spots in ground truth: {}'.format(groundTruthPositives), file=f)
         print('Number of hot spots found: {}'.format(str(len(resList)-1)), file=f)
         print('True positive(count): {}      True positve(%): {}%'.format(truePositivesLM, str(truePositivesLM / groundTruthPositives * 100)), file=f)
         print('False positive count: {}'.format(falsePositivesLM), file=f)
