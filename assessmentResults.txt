@@ -1,0 +1,8 @@
+Accuracy assessment for color image classification
+Number of hot spots found: 123
+Percent of hot spots found: 100.0 percent.
+There were 0 false positives.
+There were 0 false negatives.
+There was a classification accuracy of 100.0 percent.
+There was an average registration distance of 0.0
+There was an registration accuracy of 100.0 percent.
