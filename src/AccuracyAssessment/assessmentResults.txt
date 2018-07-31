@@ -1,0 +1,24 @@
+Accuracy assessment for hot spot detection on thermal images
+Number of hot spots in ground truth: 123
+Number of hot spots found: 123
+True positive(count): 123      True positve(%): 100.0%
+False positive count: 0
+False negative count: 0
+
+
+
+
+Accuracy assessment for hot spot detection with LOCATION MATCH on thermal images
+Number of hot spots in ground truth: 123
+Number of hot spots found: 123
+True positive(count): 123      True positve(%): 100.0%
+False positive count: 0
+False negative count: 0
+
+
+
+
+Location offset for hot spots on thermal images
+10th percentile: 0.0 pixles
+50th percentile: 0.0 pixles
+90th percentile: 0.0 pixles

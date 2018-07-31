@@ -17,11 +17,32 @@ def detectHotspots(folder):
 def registerThermalAndColorImages(folder):
     print('Registering thermal and color images...')
 
+    import sys
+    sys.path.append('../image_registration/ir_to_rgb_registration')
+    import image_registration
+
+    file = folder + '\\..\\..\\data\\test.csv'
+    fileOut = folder + '\\..\\..\\data\\testOut.csv'
+    folderImages = folder + '\\..\\..\\data\\images\\'
+
+    image_registration.registerThermalAndColorImages(file, fileOut, folderImages)
+
+
 def extractThumbnails(folder):
     print('Extracting hotspot thumbnails from color images...')
 
 def classifyThumbnails(folder):
     print('Classifying hotspot thumbnails...')
+    # Couldn't figure out how to import different files, so need to set these parameters
+    # Contact Jon Malsan for further questions
+    function_name = '../ir-hotspot-rfc/hotspot_classifier.py'
+    data_dir = './ArcticSealsData01_Thermal_N/'
+    data_file = '../arcticseals/data/test.csv'
+    model_file = 'pca_rfc_model_20180725_154906.p'
+    out_file = '../ir-hotspot-rfc/output.csv'
+
+    command = "python {} --datadir {} --datafile {} --modelfile {} --outfile {}".format(function_name,data_dir, data_file, model_file, out_file)
+    os.system(command)
 
 def validate(folder):
     print('Validating...')

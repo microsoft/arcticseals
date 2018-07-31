@@ -1,12 +1,14 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import csv
+import numpy as np
 
 MAX_FEATURES = 500
 GOOD_MATCH_PERCENT = 0.15
-RATIO_TEST = .80
+RATIO_TEST = .85
 MATCH_HEIGHT = 512
-MIN_MATCHES = 10
+MIN_MATCHES = 4
 MIN_INLIERS = 4
 
 def computeTransform(imgRef, img, warp_mode = cv2.MOTION_HOMOGRAPHY, matchLowRes=True):
@@ -31,7 +33,15 @@ def computeTransform(imgRef, img, warp_mode = cv2.MOTION_HOMOGRAPHY, matchLowRes
     sift = cv2.xfeatures2d.SIFT_create()
     keypoints1, descriptors1 = sift.detectAndCompute(imgGray, None)
     keypoints2, descriptors2 = sift.detectAndCompute(imgRefGray, None)
-  
+
+    if (len(keypoints1) == 0):
+        print("not enough keypoints")
+        return False, np.identity(3)
+
+    if (len(keypoints2) == 0):
+        print("not enough keypoints")
+        return False, np.identity(3)
+
     # scale feature points back to original size
     if (matchLowRes):
         scale = imgRef.shape[0]/imgRefGray.shape[0]
@@ -113,66 +123,114 @@ def warpPoint(pt, h):
     return ptT
 
 # read and normlize IR image
-def imreadIR(fileIR, normalize=True):
+def imreadIR(fileIR, percent=0.01):
     img =  cv2.imread(fileIR, cv2.IMREAD_ANYDEPTH)
-    img = np.floor((img - np.min(img))/(np.max(img) - np.min(img))*256)
-    img = img.astype(np.uint8)                
 
-    return img
+    if (not img is None):
+        imgNorm = np.floor((img - np.percentile(img, percent))/(np.percentile(img, 100-percent) - np.percentile(img, percent))*256)
 
-def main():
-  
-    fileIR = "../../../data/image_registration_sandbox/CHESS_FL1_C_160407_234502.428_THERM-16BIT.PNG"
-    fileRGB = "../../../data/image_registration_sandbox/___CHESS_FL1_C_160407_234502.428_COLOR-8-BIT.JPG"
-    fileAligned = "../../../data/image_registration_sandbox/CHESS_FL1_C_160407_234502.428_THERM-16BIT_aligned.JPG"
-    fileRGBAAligned = "../../../data/image_registration_sandbox/___CHESS_FL1_C_160407_234502.428_COLOR-8-BIT_rgba_aligned.png"
+    return imgNorm.astype(np.uint8), img
 
-    # Read the images to be aligned
-    img = imreadIR(fileIR)
-    imgRef =  cv2.imread(fileRGB)
+def registerThermalAndColorImages(file, fileOut, folder, displayResults=False):
+    
+    hotspots = []
 
-    # omcpute transform
-    ret, transform = computeTransform(imgRef, img)
+    with open(file, 'r') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',')
 
-    if (not ret):
-        print("failed!!!")
-        return
+        # header row
+        headers = next(reader, None)
 
-    # warp IR image
-    imgWarped = cv2.warpPerspective(img, transform, (imgRef.shape[1], imgRef.shape[0]))
+        for row in reader:
+            hotspots.append(row)
 
-    # sample hotspot
-    pt = [520, 288]
+    for i in range(0, len(hotspots)):
 
-    # warp hotspot
-    ptWarped = warpPoint(pt, transform)
+        hotspot = hotspots[i]
 
-    # write warped IR image
-    cv2.imwrite(fileAligned, imgWarped)
+        fileIR = folder + hotspot[2]
+        fileRGB = folder + hotspot[4]
+        x = float(hotspot[5])
+        y = float(hotspot[6])
 
-    # must write as .png to save with alpha channel, warning this will be a big file
-    b_channel, g_channel, r_channel = cv2.split(imgRef)
-    imgBGRA = cv2.merge((b_channel, g_channel, r_channel, imgWarped))
+        print('%d:\t%s\n\t%s' %(i, fileIR, fileRGB))
 
-    cv2.imwrite(fileRGBAAligned, imgBGRA)
+        thumb = [-1, -1, -1, -1]
 
-    # display everything
-    plt.figure()
-    plt.imshow(img, cmap='gray')
-    plt.plot(pt[0],pt[1],color='red', marker='o')
-    plt.title("Orig IR")
+        # Read the images to be aligned
+        img, img16bit = imreadIR(fileIR)
 
-    plt.figure()
-    plt.imshow(imgWarped, cmap='gray')
-    plt.plot(ptWarped[0],ptWarped[1],color='red', marker='o')
-    plt.title("Aligned IR")
+        if (img is None):
+            print('\nnot found\n')
+            hotspots[i][7:11] = thumb
+            continue
 
-    plt.figure()
-    plt.imshow(cv2.cvtColor(imgRef, cv2.COLOR_BGR2RGB))
-    plt.plot(ptWarped[0],ptWarped[1],color='red', marker='o')
-    plt.title("Orig RGB")
+        imgRef =  cv2.imread(fileRGB)
 
-    plt.show()
+        if (imgRef is None):
+            print('\nnot found\n')
+            hotspots[i][7:11] = thumb
+            continue
 
-if __name__ == '__main__':
-    main()
+        # omcpute transform
+        ret, transform = computeTransform(imgRef, img)
+    
+        if (ret):
+            pt = [x, y]
+            ptWarped = np.round(warpPoint(pt, transform))
+
+            thumb = [int(ptWarped[0]-256), int(ptWarped[1]-256), int(ptWarped[0]+256), int(ptWarped[1]+256)]
+
+            if (displayResults):
+                # warp IR image
+                imgWarped = cv2.warpPerspective(img, transform, (imgRef.shape[1], imgRef.shape[0]))
+                #img16bitWarped = cv2.warpPerspective(img16bit, transform, (imgRef.shape[1], imgRef.shape[0]))
+
+                # display everything
+                plt.figure()
+                plt.subplot(2, 2, 1)
+                plt.imshow(img, cmap='gray')
+                plt.plot(pt[0],pt[1],color='red', marker='o')
+                plt.title("Orig IR")
+
+                plt.subplot(2, 2, 2)
+                plt.imshow(imgWarped, cmap='gray')
+                plt.plot(ptWarped[0],ptWarped[1],color='red', marker='o')
+                plt.title("Aligned IR")
+
+                plt.subplot(2, 2, 3)
+                plt.imshow(cv2.cvtColor(imgRef, cv2.COLOR_BGR2RGB))
+                plt.plot(ptWarped[0],ptWarped[1],color='red', marker='o')
+                plt.title("Orig RGB")
+
+                plt.subplot(2, 2, 4)  
+                thumb = imgRef[thumb[1]:thumb[3], thumb[0]:thumb[2],:]
+                plt.imshow(cv2.cvtColor(thumb, cv2.COLOR_BGR2RGB))
+                plt.title("Thumb RGB")
+
+                plt.show()
+        else:
+
+            if (displayResults):
+                plt.figure()
+                plt.subplot(1, 2, 1)
+                plt.imshow(img, cmap='gray')
+                plt.title("Orig IR")
+
+                plt.subplot(1, 2, 2)
+                plt.imshow(cv2.cvtColor(imgRef, cv2.COLOR_BGR2RGB))
+                plt.title("Orig RGB")
+
+                plt.show()
+
+            print('alignment failed!')
+
+        hotspots[i][7:11] = thumb
+
+    with open(fileOut, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',')
+
+        writer.writerow(headers)
+        for i in range(0, len(hotspots)): 
+            
+            writer.writerow(hotspots[i])

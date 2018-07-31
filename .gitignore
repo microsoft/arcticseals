@@ -443,3 +443,8 @@ ASALocalRun/
 /src/image_registration/python/matches.jpg
 /src/image_registration/ir_to_rgb_registration/matches.jpg
 /data/image_registration_sandbox/___CHESS_FL1_C_160407_234502.428_COLOR-8-BIT_rgba_aligned.png
+/data/images
+/data/ArcticSealsData01_Color.tar
+/data/testOut.csv
+/src/inference/inference.sln
+/src/inference/inference.pyproj
