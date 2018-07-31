@@ -136,7 +136,8 @@ class FasterRCNNTrainer(nn.Module):
             self.rpn_sigma)
 
         # NOTE: default value of ignore_index is -100 ...
-        rpn_class_weights = t.FloatTensor(1.0 / np.unique(gt_rpn_label, return_counts=True)[1][1:])
+        #rpn_class_weights = t.FloatTensor(1.0 / np.unique(gt_rpn_label, return_counts=True)[1][1:])
+        rpn_class_weights = t.FloatTensor([1.0 / (gt_rpn_label.detach().cpu().numpy()>=0).sum(), 1.0]) 
         if opt.use_cuda:
             rpn_cls_loss = F.cross_entropy(rpn_score, gt_rpn_label.cuda(), ignore_index=-1, weight=rpn_class_weights.cuda())
         else:
@@ -163,7 +164,8 @@ class FasterRCNNTrainer(nn.Module):
             gt_roi_label.data,
             self.roi_sigma)
         
-        class_weights = t.FloatTensor(1.0 / np.unique(gt_roi_label, return_counts=True)[1])
+        class_weights = t.FloatTensor([1.0 / gt_roi_label.shape[0], 1.0]) 
+        #class_weights = t.FloatTensor(1.0 / np.unique(gt_roi_label, return_counts=True)[1])
         if opt.use_cuda:
             roi_cls_loss = nn.CrossEntropyLoss(weight=class_weights.cuda())(roi_score, gt_roi_label.cuda())
         else:
