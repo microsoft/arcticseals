@@ -7,6 +7,7 @@ Where:
 * bottom is the value that is mapped to zero in the normalization
 * top is the value that is mapped to 255 in the normalization
 * normalized_image is the output data represented as 8-bit numbers 
+
 Based on the training data that we have evaluated, we determined the bottom and top parameters as:
 
 | Position | # Rows | Bottom | Top |
