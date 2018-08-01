@@ -50,8 +50,8 @@ def validate(folder):
 
 cwd = os.getcwd()
 #convertThermal16bitTo8bit(cwd)
-#detectHotspots(cwd)
-#registerThermalAndColorImages(cwd)
-#extractThumbnails(cwd)
+detectHotspots(cwd)
+registerThermalAndColorImages(cwd)
+extractThumbnails(cwd)
 classifyThumbnails(cwd)
-#validate(cwd)
+validate(cwd)
