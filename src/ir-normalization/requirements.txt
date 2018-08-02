@@ -4,6 +4,7 @@ matplotlib==2.2.2
 numpy==1.15.0
 Pillow==5.2.0
 pyparsing==2.2.0
+pypng==0.0.18
 python-dateutil==2.7.3
 pytz==2018.5
 six==1.11.0
