@@ -60,7 +60,7 @@ class VottBboxDataset:
         # set up the filenames and annotations
         old_dir = os.getcwd()
         os.chdir(root)
-        self.impaths = sorted(glob.glob('*.JPG'))
+        self.impaths = sorted([fi for ext in ['*.jpg', '*.JPG', '*.PNG'] for fi in glob.glob(ext)])
         print('Found {} images'.format(len(self.impaths)))
         self.image_ids = list(range(len(self.impaths)))
         
@@ -88,9 +88,9 @@ class VottBboxDataset:
                 if bbox_labels[i] not in self.class_names:
                     self.class_names.append(bbox_labels[i])
                 bb = bbox_coords[i]
-                if np.all(bb >= 0) and bb[0] <= width and bb[2] <= width and bb[1] <= height and bb[3] <= height:
+                if np.all(bb >= 0) and bb[0] <= width and bb[2] <= width and bb[1] <= height and bb[3] <= height and bb[0] < bb[2] and bb[1] < bb[3]:
                     # In this framework, we need ('ymin', 'xmin', 'ymax', 'xmax') format
-                    self.bboxes[image_id].append([bb[1]+180,bb[0]+180,bb[3]-180,bb[2]-180])
+                    self.bboxes[image_id].append([bb[1],bb[0],bb[3],bb[2]])
                     self.labels[image_id].append(self.class_names.index(bbox_labels[i]))
             if len(self.bboxes[image_id]) == 0:
                 empty_images.append(image_id)

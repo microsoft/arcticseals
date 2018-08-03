@@ -31,43 +31,63 @@ matplotlib.use('agg')
 import torch.backends.cudnn as cudnn
 cudnn.benchmark = True
 
-def eval(dataloader, faster_rcnn, test_num=10000):
-    print('Running validation')
-    # Each predicted box is organized as :`(y_{min}, x_{min}, y_{max}, x_{max}), 
-    # Where y corresponds to the height and x to the width
-    pred_bboxes, pred_labels, pred_scores = list(), list(), list()
-    gt_bboxes, gt_labels, gt_difficults = list(), list(), list()
-    image_ids = list()
-    for ii, (imgs, sizes, gt_bboxes_, gt_labels_, gt_difficults_, image_ids_) in tqdm(
-                                                     enumerate(dataloader), total=test_num):
-        sizes = [sizes[0].detach().numpy().tolist()[0],  sizes[1].detach().numpy().tolist()[0]]
-        pred_bboxes_, pred_labels_, pred_scores_ = faster_rcnn.predict(imgs, [sizes])
-        # We have to add .copy() here to allow for the loaded image to be released after each iteration
-        gt_bboxes += list(gt_bboxes_.numpy().copy())
-        gt_labels += list(gt_labels_.numpy().copy())
-        gt_difficults += list(gt_difficults_.numpy().copy())
-        image_ids += list(image_ids_.numpy().copy())
-        pred_bboxes += [pp.copy() for pp in pred_bboxes_]
-        pred_labels += [pp.copy() for pp in pred_labels_]
-        pred_scores += [pp.copy() for pp in pred_scores_]
-        if ii == test_num: break
+def eval(dataloader, faster_rcnn, trainer, dataset, test_num=10000):
+    with torch.no_grad():
+        print('Running validation')
+        # Each predicted box is organized as :`(y_{min}, x_{min}, y_{max}, x_{max}), 
+        # Where y corresponds to the height and x to the width
+        pred_bboxes, pred_labels, pred_scores = list(), list(), list()
+        gt_bboxes, gt_labels, gt_difficults = list(), list(), list()
+        image_ids = list()
+        for ii, (imgs, sizes, gt_bboxes_, gt_labels_, gt_difficults_, image_ids_) in tqdm(
+                                                         enumerate(dataloader), total=test_num):
+            sizes = [sizes[0].detach().numpy().tolist()[0],  sizes[1].detach().numpy().tolist()[0]]
+            pred_bboxes_, pred_labels_, pred_scores_ = faster_rcnn.predict(imgs, [sizes])
+            # We have to add .copy() here to allow for the loaded image to be released after each iteration
+            gt_bboxes += list(gt_bboxes_.numpy().copy())
+            gt_labels += list(gt_labels_.numpy().copy())
+            gt_difficults += list(gt_difficults_.numpy().copy())
+            image_ids += list(image_ids_.numpy().copy())
+            pred_bboxes += [pp.copy() for pp in pred_bboxes_]
+            pred_labels += [pp.copy() for pp in pred_labels_]
+            pred_scores += [pp.copy() for pp in pred_scores_]
+            if ii == test_num: break
 
-    result = eval_detection_voc(
-        pred_bboxes, pred_labels, pred_scores,
-        gt_bboxes, gt_labels, gt_difficults,
-        use_07_metric=True)
-    
-    if opt.validate_only:
-        save_path = '{}_detections.npz'.format(opt.load_path)
-        np.savez(save_path, pred_bboxes=pred_bboxes, 
-                            pred_labels=pred_labels,
-                            pred_scores=pred_scores,
-                            gt_bboxes=gt_bboxes, 
-                            gt_labels=gt_labels, 
-                            gt_difficults=gt_difficults,
-                            image_ids=image_ids,
-                            result=result)
-    return result
+        result = eval_detection_voc(
+            pred_bboxes, pred_labels, pred_scores,
+            gt_bboxes, gt_labels, gt_difficults,
+            use_07_metric=True)
+        
+        if opt.validate_only:
+            save_path = '{}_detections.npz'.format(opt.load_path)
+            np.savez(save_path, pred_bboxes=pred_bboxes, 
+                                pred_labels=pred_labels,
+                                pred_scores=pred_scores,
+                                gt_bboxes=gt_bboxes, 
+                                gt_labels=gt_labels, 
+                                gt_difficults=gt_difficults,
+                                image_ids=image_ids,
+                                result=result)
+        else:
+            ori_img_ = inverse_normalize(at.tonumpy(imgs[0]))
+            gt_img = visdom_bbox(ori_img_,
+                                 at.tonumpy(gt_bboxes[-1]),
+                                 at.tonumpy(gt_labels[-1]),
+                                 label_names=dataset.get_class_names()+['BG'])
+            trainer.vis.img('test_gt_img', gt_img)
+
+            # plot predicti bboxes
+            pred_img = visdom_bbox(ori_img_,
+                                   at.tonumpy(pred_bboxes[-1]),
+                                   at.tonumpy(pred_labels[-1]).reshape(-1),
+                                   at.tonumpy(pred_scores[-1]),
+                                   label_names=dataset.get_class_names()+['BG'])
+            trainer.vis.img('test_pred_img', pred_img)
+
+
+        del imgs, gt_bboxes_, gt_labels_, gt_difficults_, image_ids_, pred_bboxes_, pred_labels_, pred_scores_
+        torch.cuda.empty_cache()
+        return result
 
 
 def train(**kwargs):
@@ -102,7 +122,7 @@ def train(**kwargs):
 
     if opt.validate_only:
         num_eval_images = len(testset)
-        eval_result = eval(test_dataloader, faster_rcnn, test_num=num_eval_images)
+        eval_result = eval(test_dataloader, faster_rcnn, trainer, testset, test_num=num_eval_images)
         print('Evaluation finished, obtained {} using {} out of {} images'.
                 format(eval_result, num_eval_images, len(testset)))
         return
@@ -139,7 +159,7 @@ def train(**kwargs):
 
                 # plot loss
                 #trainer.vis.plot_many(trainer.get_meter_data())
-
+                """
                 # plot groud truth bboxes
                 ori_img_ = inverse_normalize(at.tonumpy(img[0]))
                 gt_img = visdom_bbox(ori_img_,
@@ -157,11 +177,11 @@ def train(**kwargs):
                                        label_names=dataset.get_class_names()+['BG'])
                 trainer.vis.img('pred_img', pred_img)
 
+                """
                 # rpn confusion matrix(meter)
                 #trainer.vis.text(str(trainer.rpn_cm.value().tolist()), win='rpn_cm')
                 # roi confusion matrix
                 #trainer.vis.img('roi_cm', at.totensor(trainer.roi_cm.conf, False).float())
-                
                 #print('Current total loss {}'.format(losses[-1].tolist()))
                 trainer.vis.plot('train_total_loss', losses[-1].tolist())
                 
@@ -172,7 +192,11 @@ def train(**kwargs):
         #snapshot_path = trainer.save(epoch=epoch)
         #print("After epoch {}: snapshotted to {}".format(epoch,snapshot_path))
         
-        eval_result = dict(map=epoch) #eval(test_dataloader, faster_rcnn, test_num=min(opt.test_num, len(testset)))
+        for lo in losses:
+            del lo
+        del img, bbox_, label_, scale
+        torch.cuda.empty_cache()
+        eval_result = eval(test_dataloader, faster_rcnn, trainer, testset, test_num=min(opt.test_num, len(testset)))
         print(eval_result)
         # TODO: this definitely is not good and will bias evaluation
         if eval_result['map'] > best_map:
@@ -180,8 +204,9 @@ def train(**kwargs):
             best_path = trainer.save(best_map=eval_result['map'],epoch=epoch)
             print("After epoch {}: snapshotted to {}".format(epoch, best_path))
 
-
         trainer.vis.plot('test_map', eval_result['map'])
+        del eval_result
+        torch.cuda.empty_cache()
 
 
 if __name__ == '__main__':

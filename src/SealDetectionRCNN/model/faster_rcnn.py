@@ -204,67 +204,68 @@ class FasterRCNN(nn.Module):
                Each value indicates how confident the prediction is.
 
         """
-        self.eval()
-        if visualize:
-            self.use_preset('visualize')
-            prepared_imgs = list()
-            sizes = list()
-            for img in imgs:
-                size = img.shape[1:]
-                img = preprocess(at.tonumpy(img))
-                prepared_imgs.append(img)
-                sizes.append(size)
-        else:
-             prepared_imgs = imgs 
-        bboxes = list()
-        labels = list()
-        scores = list()
-        for img, size in zip(prepared_imgs, sizes):
-            img = t.autograd.Variable(at.totensor(img).float()[None], volatile=True)
-            scale = img.shape[3] / size[1]
-            roi_cls_loc, roi_scores, rois, _ = self(img, scale=scale)
-            # We are assuming that batch size is 1.
-            roi_score = roi_scores.data
-            roi_cls_loc = roi_cls_loc.data
-            roi = at.totensor(rois) / scale
-
-            # Convert predictions to bounding boxes in image coordinates.
-            # Bounding boxes are scaled to the scale of the input images.
-            if opt.use_cuda:
-                mean = t.Tensor(self.loc_normalize_mean).cuda(). \
-                    repeat(self.n_class)[None]
-                std = t.Tensor(self.loc_normalize_std).cuda(). \
-                    repeat(self.n_class)[None]
+        with t.no_grad():
+            self.eval()
+            if visualize:
+                self.use_preset('visualize')
+                prepared_imgs = list()
+                sizes = list()
+                for img in imgs:
+                    size = img.shape[1:]
+                    img = preprocess(at.tonumpy(img))
+                    prepared_imgs.append(img)
+                    sizes.append(size)
             else:
-                mean = t.Tensor(self.loc_normalize_mean). \
-                    repeat(self.n_class)[None]
-                std = t.Tensor(self.loc_normalize_std). \
-                    repeat(self.n_class)[None]
+                 prepared_imgs = imgs 
+            bboxes = list()
+            labels = list()
+            scores = list()
+            for img, size in zip(prepared_imgs, sizes):
+                img = t.autograd.Variable(at.totensor(img).float()[None])
+                scale = img.shape[3] / size[1]
+                roi_cls_loc, roi_scores, rois, _ = self(img, scale=scale)
+                # We are assuming that batch size is 1.
+                roi_score = roi_scores.data
+                roi_cls_loc = roi_cls_loc.data
+                roi = at.totensor(rois) / scale
 
-            roi_cls_loc = (roi_cls_loc * std + mean)
-            roi_cls_loc = roi_cls_loc.view(-1, self.n_class, 4)
-            roi = roi.view(-1, 1, 4).expand_as(roi_cls_loc)
-            cls_bbox = loc2bbox(at.tonumpy(roi).reshape((-1, 4)),
-                                at.tonumpy(roi_cls_loc).reshape((-1, 4)))
-            cls_bbox = at.totensor(cls_bbox)
-            cls_bbox = cls_bbox.view(-1, self.n_class * 4)
-            # clip bounding box
-            cls_bbox[:, 0::2] = (cls_bbox[:, 0::2]).clamp(min=0, max=size[0])
-            cls_bbox[:, 1::2] = (cls_bbox[:, 1::2]).clamp(min=0, max=size[1])
+                # Convert predictions to bounding boxes in image coordinates.
+                # Bounding boxes are scaled to the scale of the input images.
+                if opt.use_cuda:
+                    mean = t.Tensor(self.loc_normalize_mean).cuda(). \
+                        repeat(self.n_class)[None]
+                    std = t.Tensor(self.loc_normalize_std).cuda(). \
+                        repeat(self.n_class)[None]
+                else:
+                    mean = t.Tensor(self.loc_normalize_mean). \
+                        repeat(self.n_class)[None]
+                    std = t.Tensor(self.loc_normalize_std). \
+                        repeat(self.n_class)[None]
 
-            prob = at.tonumpy(F.softmax(at.tovariable(roi_score), dim=1))
+                roi_cls_loc = (roi_cls_loc * std + mean)
+                roi_cls_loc = roi_cls_loc.view(-1, self.n_class, 4)
+                roi = roi.view(-1, 1, 4).expand_as(roi_cls_loc)
+                cls_bbox = loc2bbox(at.tonumpy(roi).reshape((-1, 4)),
+                                    at.tonumpy(roi_cls_loc).reshape((-1, 4)))
+                cls_bbox = at.totensor(cls_bbox)
+                cls_bbox = cls_bbox.view(-1, self.n_class * 4)
+                # clip bounding box
+                cls_bbox[:, 0::2] = (cls_bbox[:, 0::2]).clamp(min=0, max=size[0])
+                cls_bbox[:, 1::2] = (cls_bbox[:, 1::2]).clamp(min=0, max=size[1])
 
-            raw_cls_bbox = at.tonumpy(cls_bbox)
-            raw_prob = at.tonumpy(prob)
+                prob = at.tonumpy(F.softmax(at.tovariable(roi_score), dim=1))
 
-            bbox, label, score = self._suppress(raw_cls_bbox, raw_prob)
-            bboxes.append(bbox)
-            labels.append(label)
-            scores.append(score)
+                raw_cls_bbox = at.tonumpy(cls_bbox)
+                raw_prob = at.tonumpy(prob)
 
-        self.use_preset('evaluate')
-        self.train()
-        return bboxes, labels, scores
+                bbox, label, score = self._suppress(raw_cls_bbox, raw_prob)
+                bboxes.append(bbox)
+                labels.append(label)
+                scores.append(score)
+
+            self.use_preset('evaluate')
+            self.train()
+            return bboxes, labels, scores
 
     def get_optimizer(self):
         """

@@ -6,17 +6,19 @@ import os
 import sys
 import numpy as np
 from PIL import Image
+import png
 
 
 # Functions
-def lin_normalize_image(image_array, bottom=None, top=None):
+def lin_normalize_image(image_array, bit_8, bottom=None, top=None):
     """Linear normalization for an image array
     Inputs:
         image_array: np.ndarray, image data to be normalized
+        bit_8: boolean, if true outputs 8 bit, otherwise outputs 16 bit
         bottom: float, value to map to 0 in the new array
-        top: float, value to map to 1 in the new array
+        top: float, value to map to 2^(bit_depth) in the new array
     Output:
-        scaled_image: nd.ndarray, scaled image between 0 and 255
+        scaled_image: nd.ndarray, scaled image between 0 and 2^(bit_depth)
     """
     if bottom is None:
         bottom = np.min(image_array)
@@ -26,8 +28,11 @@ def lin_normalize_image(image_array, bottom=None, top=None):
     scaled_image = (image_array - bottom) / (top - bottom)
     scaled_image[scaled_image < 0] = 0
     scaled_image[scaled_image > 1] = 1
-
-    scaled_image = np.floor(scaled_image * 255).astype(np.uint8)
+    
+    if bit_8:
+        scaled_image = np.floor(scaled_image * 256).astype(np.uint8)
+    else:
+        scaled_image = np.floor(scaled_image * 65536).astype(np.uint16)
 
     return scaled_image
 
@@ -38,6 +43,7 @@ def parse_arguments(sys_args):
     Output:
         input_directory: string, path to the input image directory
         output_directory: string, path to the output image directory
+        bit_8: boolean, set to true to output 8-bit images, or false for 16-bit
     """
     # Set up parse
     parser = argparse.ArgumentParser(
@@ -46,6 +52,8 @@ def parse_arguments(sys_args):
                         required=True, help='relative path to directory containing images')
     parser.add_argument('--outdir', type=str,
                         default=None, help='relative path to the output directory')
+    parser.add_argument('--bit8', action='store_true',
+                        default=False, help='include to output 8-bit images')
     # Parse
     args = parser.parse_args(sys_args)
 
@@ -57,13 +65,16 @@ def parse_arguments(sys_args):
     else:
         output_directory = args.outdir
 
-    return input_directory, output_directory
+    bit_8 = args.bit8
 
-def curate_files(input_directory, output_directory):
+    return input_directory, output_directory, bit_8
+
+def curate_files(input_directory, output_directory, bit_8):
     """Generates name lists for input and output images
     Inputs:
         input_directory: string, path to the input image directory
         output_directory: string, path to the output image directory
+        bit_8: boolean, if true outputs 8 bit, otherwise outputs 16 bit
     Output:
         input_files: list, contains the file names of the incoming images
         output_files: list, contains the file names of the outgoing images
@@ -71,7 +82,10 @@ def curate_files(input_directory, output_directory):
     all_files = os.listdir(input_directory)
 
     input_files = [x for x in all_files if x.find('16BIT.PNG') != -1]
-    output_files = [x.replace('16BIT', '8BIT-N') for x in input_files]
+    if bit_8:
+        output_files = [x.replace('16BIT', '8BIT-N') for x in input_files]
+    else:
+        output_files = [x.replace('16BIT.', '16BIT-N.') for x in input_files]
 
     input_files = [os.path.join(input_directory, x) for x in input_files]
     output_files = [os.path.join(output_directory, x) for x in output_files]
@@ -130,8 +144,8 @@ def get_scaling_values(filename, num_rows):
 def main(sys_args):
     """Function that is called by the command line"""
     # Parses the arguments
-    input_directory, output_directory = parse_arguments(sys_args[1:])
-    input_files, output_files = curate_files(input_directory, output_directory)
+    input_directory, output_directory, bit_8 = parse_arguments(sys_args[1:])
+    input_files, output_files = curate_files(input_directory, output_directory, bit_8)
     print('Found {} files for processing'.format(len(input_files)))
     
     successful = 0
@@ -148,13 +162,24 @@ def main(sys_args):
         try:
             cur_data = np.array(Image.open(in_file))
             bottom, top = get_scaling_values(in_file, cur_data.shape[0])
-            normalized = lin_normalize_image(cur_data, bottom, top)
+            normalized = lin_normalize_image(cur_data, bit_8, bottom, top)
 
-            save_im = Image.fromarray(normalized)
-            save_im.save(output_files[index])
+            if bit_8:
+                save_im = Image.fromarray(normalized)
+                save_im.save(output_files[index])
+            else:
+                # Pillow does not support 16-bit grayscale pngs
+                # So switched to pypng
+                with open(output_files[index], 'wb') as f:
+                    writer = png.Writer(width=normalized.shape[1], 
+                                        height=normalized.shape[0], 
+                                        bitdepth=16, 
+                                        greyscale=True)
+                    normalized_list = normalized.tolist()
+                    writer.write(f, normalized_list)
             successful += 1
         except:
-            print('Unable to load {}'.format(output_files[index]))
+            print('Unable to load {}'.format(input_files[index]))
 
     print('Completed converting {} files'.format(successful))
 
