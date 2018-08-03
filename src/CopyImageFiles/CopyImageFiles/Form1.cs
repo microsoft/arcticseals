@@ -135,7 +135,7 @@ namespace CopyImageFiles
 			EnumerateImageFiles(Directory.GetFiles(path, "*.PNG"));
 			EnumerateImageFiles(Directory.GetFiles(path, "*.JPG"));
 
-			foreach (var subDir in Directory.GetDirectories(path).Where(x => !x.Contains("System Volume Information")))
+			foreach (var subDir in Directory.GetDirectories(path).Where(x => { return !x.Contains("System Volume Information") && !x.Contains("$RECYCLE"); }))
 			{
 				EnumerateImageFilesInDir(subDir);
 			}
