@@ -16,9 +16,9 @@ def lin_normalize_image(image_array, bit_8, bottom=None, top=None):
         image_array: np.ndarray, image data to be normalized
         bit_8: boolean, if true outputs 8 bit, otherwise outputs 16 bit
         bottom: float, value to map to 0 in the new array
-        top: float, value to map to 1 in the new array
+        top: float, value to map to 2^(bit_depth) in the new array
     Output:
-        scaled_image: nd.ndarray, scaled image between 0 and 255
+        scaled_image: nd.ndarray, scaled image between 0 and 2^(bit_depth)
     """
     if bottom is None:
         bottom = np.min(image_array)
