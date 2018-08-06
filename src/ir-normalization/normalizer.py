@@ -2,8 +2,12 @@
 # Imports
 import argparse
 import datetime
+from functools import partial
+from multiprocessing import Pool, Manager, Value, cpu_count
 import os
 import sys
+import time
+
 import numpy as np
 from PIL import Image
 import png
@@ -69,6 +73,7 @@ def parse_arguments(sys_args):
 
     return input_directory, output_directory, bit_8
 
+
 def curate_files(input_directory, output_directory, bit_8):
     """Generates name lists for input and output images
     Inputs:
@@ -91,6 +96,7 @@ def curate_files(input_directory, output_directory, bit_8):
     output_files = [os.path.join(output_directory, x) for x in output_files]
 
     return input_files, output_files
+
 
 def parse_filename(filename):
     """Gets the camera position argument from filename
@@ -141,6 +147,48 @@ def get_scaling_values(filename, num_rows):
 
     return bottom, top
 
+
+
+def process_file(len_inputs, bit_8, prev_time, prev_time_lock, in_file, output_file, index):
+    """Reads an image, processes it, and outputs the result. Runs in a thread.
+
+    Returns True on success, False otherwise.
+    """
+    if index % 1000 == 0:
+        cur_time = time.time()
+        time_diff = cur_time - prev_time.value
+        time_est_sec = time_diff * (len_inputs - index) / 1000
+        time_est = datetime.timedelta(seconds=time_est_sec)
+        print('%d of %d -- %.2f sec. Time remaining: %s' % 
+	    (index, len_inputs, time_diff, time_est))
+        with prev_time_lock:
+            prev_time.value = cur_time
+
+    try:
+        cur_data = np.array(Image.open(in_file))
+        bottom, top = get_scaling_values(in_file, cur_data.shape[0])
+        normalized = lin_normalize_image(cur_data, bit_8, bottom, top)
+    
+        if bit_8:
+    	    save_im = Image.fromarray(normalized)
+    	    save_im.save(output_file)
+        else:
+       	    # Pillow does not support 16-bit grayscale pngs
+       	    # So switched to pypng
+       	    with open(output_file, 'wb') as f:
+       	        writer = png.Writer(width=normalized.shape[1], 
+       	    			height=normalized.shape[0], 
+       	    			bitdepth=16, 
+       	    			greyscale=True)
+       	        normalized_list = normalized.tolist()
+       	        writer.write(f, normalized_list)
+        return True
+    except Exception as e:
+        print(e)
+        print('Unable to load {}'.format(in_file))
+        return False
+    
+
 def main(sys_args):
     """Function that is called by the command line"""
     # Parses the arguments
@@ -151,41 +199,23 @@ def main(sys_args):
 
     input_files, output_files = curate_files(input_directory, output_directory, bit_8)
     print('Found {} files for processing'.format(len(input_files)))
-    
-    successful = 0
-    prev_time = datetime.datetime.now()
-    for index, in_file in enumerate(input_files):
-        if index % 1000 == 0:
-            cur_time = datetime.datetime.now()
-            time_diff = cur_time - prev_time
-            time_est = time_diff * (len(input_files) - index) / 1000
-            print('%d of %d -- %.2f sec. Time remaining: %s' % 
-                (index, len(input_files), time_diff.total_seconds(), time_est))
-            prev_time = cur_time
 
-        try:
-            cur_data = np.array(Image.open(in_file))
-            bottom, top = get_scaling_values(in_file, cur_data.shape[0])
-            normalized = lin_normalize_image(cur_data, bit_8, bottom, top)
 
-            if bit_8:
-                save_im = Image.fromarray(normalized)
-                save_im.save(output_files[index])
-            else:
-                # Pillow does not support 16-bit grayscale pngs
-                # So switched to pypng
-                with open(output_files[index], 'wb') as f:
-                    writer = png.Writer(width=normalized.shape[1], 
-                                        height=normalized.shape[0], 
-                                        bitdepth=16, 
-                                        greyscale=True)
-                    normalized_list = normalized.tolist()
-                    writer.write(f, normalized_list)
-            successful += 1
-        except:
-            print('Unable to load {}'.format(input_files[index]))
+    m = Manager()
+    prev_time = m.Value('d', time.time())
+    prev_time_lock = m.Lock()
+    process_file_partial = partial(process_file, len(input_files), bit_8, prev_time, prev_time_lock)
 
-    print('Completed converting {} files'.format(successful))
+    # Process using multiple cores.
+    num_workers = cpu_count() - 1 or 1    
+    with Pool(num_workers) as pool:
+        results = pool.starmap(process_file_partial, 
+                               [(in_file, output_files[index], index) 
+                                for index, in_file in enumerate(input_files)], 
+                               chunksize=1)
+    print('Done!')
+    print('Completed converting {} files'.format(sum(1 for x in results if x)))
+
 
 if __name__ == "__main__":
     main(sys.argv)
