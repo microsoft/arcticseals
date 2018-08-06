@@ -145,6 +145,10 @@ def main(sys_args):
     """Function that is called by the command line"""
     # Parses the arguments
     input_directory, output_directory, bit_8 = parse_arguments(sys_args[1:])
+    print('Input directory: %s' % input_directory)
+    print('Output directory: %s' % output_directory)
+    print('bit_8: %s' % bit_8)
+
     input_files, output_files = curate_files(input_directory, output_directory, bit_8)
     print('Found {} files for processing'.format(len(input_files)))
     
