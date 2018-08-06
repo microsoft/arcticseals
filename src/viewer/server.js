@@ -22,7 +22,10 @@ app.use('/thumb-thermal', express.static('E:\\noaa\\thumb-thermal'));
 app.use('/crop-img', express.static('E:\\noaa\\crop-img'));
 
 // using router.get() to prefix our path
-// url: http://localhost:3000/api/CHESS_FL1_C_160408_000830.513_COLOR-8-BIT_HOTSPOT_17486.JPG
+// URL:
+// http://aarayas-t:3000/api/CHESS_FL24_C_160518_214536.342_COLOR-8-BIT_HOTSPOT_200901.JPG
+// http://aarayas-t:3000/api/CHESS_FL1_C_160408_000830.513_COLOR-8-BIT_HOTSPOT_17486.JPG
+//
 app.get('/api/:id', (request, response) => {
 	var filename = 'E:\\noaa\\crop-img\\' + request.params.id;
 	fs.copyFileSync(filename, 'D:\\github\\seals\\src\\viewer\\util\\cnn\\cur\\cur.jpg');

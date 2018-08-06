@@ -22,8 +22,8 @@ app.controller('View4Ctrl', function($scope) {
 
 	$.getJSON( "/data/training.json", function( data ) {
 		if (data.Artic !== 'undefined') {
-			var artic = data.Artic;
-			var len = artic.length / 2;
+			artic = data.Artic;
+			var len = artic.length;
 			for(var i = 0; i < len; i++) {
 				var articI = artic[i];
 				$scope.items.push({"idx": i, "color": "thumb-img//" + articI.filt_color, "thermal" : "thumb-thermal//" + articI.filt_thermal8});
@@ -35,11 +35,12 @@ app.controller('View4Ctrl', function($scope) {
 	$scope.filterMe = function( hotspot_type ) {
 		if (artic !== 'undefined') {
 			$scope.items = [];
-			var len = artic.length / 3;
+			var len = artic.length;
 			for(var i = 0; i < len; i++) {
 				var name = getName(artic[i]);
 				if (artic[i].hotspot_type === hotspot_type) {
-					$scope.items.push({"idx": i, "file": "crop-img//" + name});				
+					var articI = artic[i];
+					$scope.items.push({"idx": i, "color": "thumb-img//" + articI.filt_color, "thermal" : "thumb-thermal//" + articI.filt_thermal8});
 				}
 			}
 			items = $scope.items;

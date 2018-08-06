@@ -22,7 +22,7 @@ app.controller('View3Ctrl', function($scope) {
 	$.getJSON( "/data/training.json", function( data ) {
 		if (data.Artic !== 'undefined') {
 			artic = data.Artic;
-			var len = artic.length / 3;
+			var len = artic.length;
 			for(var i = 0; i < len; i++) {
 				var name = getName(artic[i]);
 				$scope.items.push({"idx": i, "file": "crop-img//" + name});
@@ -34,7 +34,7 @@ app.controller('View3Ctrl', function($scope) {
 	$scope.filterMe = function( hotspot_type ) {
 		if (artic !== 'undefined') {
 			$scope.items = [];
-			var len = artic.length / 3;
+			var len = artic.length;
 			for(var i = 0; i < len; i++) {
 				var name = getName(artic[i]);
 				if (artic[i].hotspot_type === hotspot_type) {
