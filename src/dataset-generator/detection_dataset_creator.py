@@ -84,9 +84,9 @@ def main():
             # If we have all input files for registration
             if os.path.isfile(out_file_ir_reg):
                 print('Registered IR image for {} already exists, skipping...'.format(im_basename))
-            #elif find_file_in_dirs(source_dirs, os.path.basename(out_file_ir_reg)):
-            #    print('Registered IR image for {} exists in the source directories, copying...'.format(im_basename))
-            #    shutil.copy(find_file_in_dirs(source_dirs, os.path.basename(out_file_ir_reg)), output_dir)
+            elif find_file_in_dirs(source_dirs, os.path.basename(out_file_ir_reg)):
+                print('Registered IR image for {} exists in the source directories, copying...'.format(im_basename))
+                shutil.copy(find_file_in_dirs(source_dirs, os.path.basename(out_file_ir_reg)), output_dir)
             elif in_file_ir_reg and in_file_color_reg:
                 # Read input images
                 image_ir_n, image_ir_orig = imreadIR(in_file_ir_reg)
