@@ -79,7 +79,7 @@ class VottBboxDataset:
             # x_min (of width axis) y_min (of height axis), x_max, y_max
             # Coordinate system starts in top left corner
             bbox_coords = np.loadtxt(os.path.splitext(impath)[0] + '.bboxes.tsv', dtype=np.int32)
-            if len(bbox_coords.shape) == 1:
+            if len(bbox_coords.shape) == 1 and bbox_coords.size > 0:
                 bbox_coords = bbox_coords[None,:]
             assert len(bbox_coords) == len(bbox_labels)
             img_file = os.path.join(self.root, self.impaths[image_id])

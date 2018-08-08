@@ -25,6 +25,11 @@ class Config:
     rpn_sigma = 3.
     roi_sigma = 1.
 
+    # Configuration for IR / color image learning
+    # How to include IR in the training
+    # Possible values or 'color_only', 'ir_only', 'ir_as_red', 'four_channel_input'
+    ir_color_mode = 'ir_only'
+
     # param for optimizer
     # 0.0005 in origin paper but 0.0001 in tf-faster-rcnn
     weight_decay = 0.0005

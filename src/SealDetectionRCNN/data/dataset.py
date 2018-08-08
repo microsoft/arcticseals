@@ -1,5 +1,6 @@
 import torch as t
 from .vott_dataset import VottBboxDataset
+from .seals_dataset import SealsBboxDataset
 from skimage import transform as sktsf
 from torchvision import transforms as tvtsf
 from . import util
@@ -101,6 +102,8 @@ class Dataset:
         self.opt = opt
         if opt.dataset == 'vott':
             self.db = VottBboxDataset(opt.train_image_dir)
+        elif opt.dataset == 'seals':
+            self.db = SealsBboxDataset(opt.train_image_dir)
         self.tsf = Transform(opt.min_size, opt.max_size)
 
     def __getitem__(self, idx):
@@ -126,6 +129,8 @@ class TestDataset:
         self.opt = opt
         if opt.dataset == 'vott':
             self.db = VottBboxDataset(opt.val_image_dir)
+        elif opt.dataset == 'seals':
+            self.db = SealsBboxDataset(opt.val_image_dir)
         self.tsf = Transform(opt.min_size, opt.max_size)
 
     def __getitem__(self, idx):
