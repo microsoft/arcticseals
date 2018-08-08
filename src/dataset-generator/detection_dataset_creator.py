@@ -11,6 +11,7 @@ import pyprind
 import glob
 import joblib
 import multiprocessing
+import png
 
 def find_file_in_dirs(source_dirs, filename):
     return_file = None
@@ -28,12 +29,11 @@ def main():
     # Please use basenames only, i.e. without the image type in the name
     # E.g., omnit from the file CHESS_FL12_C_160421_231526.530_COLOR-8-BIT.JPG, omnit
     # the tag _COLOR-8-BIT.JPG and put only CHESS_FL12_C_160421_231526.530 in the list
-    image_basename_list = '/datadrive/sealdata_blob01_complete/train_clean.txt'
+    image_basename_list = '/datadrive/sealdata_blob01_complete/test_clean.txt'
     # List of directories, where required files might be located
-    source_dirs = ['/datadrive/sealdata_blob01_complete/train']
+    source_dirs = ['/datadrive/seal_blobs/color01', '/datadrive/seal_blobs/thermal01']
     # List of file tags to copy for each image
-    tags = ['_THERM-REG-16BIT.JPG', '_COLOR-8-BIT.JPG', '_THERM-16BIT.PNG', '_THERM-8-BIT.JPG', 
-            '_THERM-8BIT-N.PNG']
+    tags = ['_COLOR-8-BIT.JPG', '_THERM-16BIT.PNG', '_THERM-8-BIT.JPG'] # _THERM-REG-16BIT.JPG _THERM-8BIT-N.PNG 
     # Whether to compute and store the unregsitered normalized IR image, this will be 16 bit
     store_normalized_ir = True
     # Whether to compute and store the registered IR image, this will be normalized 16 bit format
@@ -44,7 +44,7 @@ def main():
     # evaluation. Specify the mean object width/height of the foreground objects
     object_width = 128
     # The folder of the output directory
-    output_dir = '/datadrive/sealdata_blob01_complete/train_w_annotations'
+    output_dir = '/datadrive/sealdata_blob01_complete/test'
 
     
     # Read csv
@@ -68,18 +68,15 @@ def main():
             if in_file_n:
                 normalizer.process_file(1, False, 1, 1, in_file_n, out_file_n, 1)
             else:
-                print('ERROR: asked to compute normalized IR image, but the 16 bit raw IR ' + 
-                      ' image is missing for ' + im_basename)
+                print('ERROR: Cannot compute normalized IR image, because the 16 bit raw IR ' + 
+                      'image is missing for ' + im_basename)
 
         # Register IR image to RGB image space and store the warped image
         # Uses the normalized image, if we can get it 
         if compute_registered_ir:
             # use normalzied image as input
-            if out_file_n and out_file_n:
-                in_file_ir_reg = out_file_n
-            else:
-                in_file_ir_reg = find_file_in_dirs(source_dirs, im_basename + '_THERM-16BIT.PNG')
-            out_file_ir_reg = os.path.join(output_dir, im_basename + '_THERM-REG-16BIT.JPG')
+            in_file_ir_reg = find_file_in_dirs(source_dirs, im_basename + '_THERM-16BIT.PNG')
+            out_file_ir_reg = os.path.join(output_dir, im_basename + '_THERM-REG-16BIT.PNG')
             in_file_color_reg = find_file_in_dirs(source_dirs, im_basename + '_COLOR-8-BIT.JPG')
             # If we have all input files for registration
             if os.path.isfile(out_file_ir_reg):
@@ -89,13 +86,21 @@ def main():
                 shutil.copy(find_file_in_dirs(source_dirs, os.path.basename(out_file_ir_reg)), output_dir)
             elif in_file_ir_reg and in_file_color_reg:
                 # Read input images
-                image_ir_n, image_ir_orig = imreadIR(in_file_ir_reg)
+                image_ir_n = imreadIR(in_file_ir_reg)[0]
+                image_to_warp = imreadIR(out_file_n)[1]
                 image_color = cv2.imread(in_file_color_reg)
                 # compute transform
                 ret, transform, inliers = computeTransform(image_color, image_ir_n)
                 if ret:
-                    image_warped = cv2.warpPerspective(image_ir_orig, transform, (image_color.shape[1], image_color.shape[0]))
-                    cv2.imwrite(out_file_ir_reg, image_warped)
+                    image_warped = cv2.warpPerspective(image_to_warp, transform, (image_color.shape[1], image_color.shape[0]))
+                    #cv2.imwrite(out_file_ir_reg, image_warped)
+                    with open(out_file_ir_reg, 'wb') as f:
+                        writer = png.Writer(width=image_warped.shape[1],
+                                height=image_warped.shape[0],
+                                bitdepth=16,
+                                greyscale=True)
+                        pixel_list = image_warped.tolist()
+                        writer.write(f, pixel_list)
                 else:
                     print("Failed to register {}".format(im_basename))
 
@@ -122,7 +127,6 @@ def main():
                     index=False, header=False, sep=' ', float_format='%i')
 
     num_cores = multiprocessing.cpu_count()
-    #with multiprocessing.Pool(num_cores) as pool:
     results = joblib.Parallel(n_jobs=num_cores, verbose=15)(joblib.delayed(process_image)(im_basename) for im_basename in im_basenames)
 
     # Check if we have all files for all images
