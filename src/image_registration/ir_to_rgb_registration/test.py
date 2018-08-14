@@ -8,11 +8,11 @@ def main():
     fileRGBAAligned = "../../../data/image_registration_sandbox/___CHESS_FL1_C_160407_234502.428_COLOR-8-BIT_rgba_aligned.png"
 
     # Read the images to be aligned
-    img = imreadIR(fileIR)
+    img = imreadIR(fileIR)[0]
     imgRef =  cv2.imread(fileRGB)
 
     # omcpute transform
-    ret, transform = computeTransform(imgRef, img)
+    ret, transform, _ = computeTransform(imgRef, img)
 
     if (not ret):
         print("failed!!!")

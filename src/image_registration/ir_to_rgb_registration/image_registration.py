@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import csv
 import numpy as np
 
@@ -34,13 +34,13 @@ def computeTransform(imgRef, img, warp_mode = cv2.MOTION_HOMOGRAPHY, matchLowRes
     keypoints1, descriptors1 = sift.detectAndCompute(imgGray, None)
     keypoints2, descriptors2 = sift.detectAndCompute(imgRefGray, None)
 
-    if (len(keypoints1) == 0):
+    if (len(keypoints1) < 2):
         print("not enough keypoints")
-        return False, np.identity(3)
+        return False, np.identity(3), 0
 
-    if (len(keypoints2) == 0):
+    if (len(keypoints2) < 2):
         print("not enough keypoints")
-        return False, np.identity(3)
+        return False, np.identity(3), 0
 
     # scale feature points back to original size
     if (matchLowRes):
@@ -77,7 +77,7 @@ def computeTransform(imgRef, img, warp_mode = cv2.MOTION_HOMOGRAPHY, matchLowRes
 
     if (len(matches) < MIN_MATCHES):
         print("not enough matches")
-        return False, np.identity(3)
+        return False, np.identity(3), 0
 
     # Extract location of good matches
     points1 = np.zeros((len(matches), 2), dtype=np.float32)
@@ -92,9 +92,21 @@ def computeTransform(imgRef, img, warp_mode = cv2.MOTION_HOMOGRAPHY, matchLowRes
  
     print("%d inliers" % sum(mask))
 
-    if (sum(mask) < MIN_INLIERS):
+    if sum(mask) < MIN_INLIERS:
         print("not enough inliers")
-        return False, np.identity(3)
+        return False, np.identity(3), 0
+
+    # Check if we have a robust set of inliers by computing the area of the convex hull
+    import scipy.spatial
+    # Good area is 11392
+    try:
+        print('Inlier area ', scipy.spatial.ConvexHull(points2[np.isclose(mask.ravel(), 1)]).area)
+        if scipy.spatial.ConvexHull(points2[np.isclose(mask.ravel(), 1)]).area < 1000:
+            print("Inliers seem colinear or too close, skipping")
+            return False, np.identity(3), 0
+    except:
+        print("Inliers seem colinear or too close, skipping")
+        return False, np.identity(3), 0
 
     # if non homography requested, compute from inliers
     if warp_mode != cv2.MOTION_HOMOGRAPHY:
@@ -107,13 +119,15 @@ def computeTransform(imgRef, img, warp_mode = cv2.MOTION_HOMOGRAPHY, matchLowRes
                 points2Inliers.append(points2[i,:])
              
         a = cv2.estimateRigidTransform(np.asarray(points1Inliers), np.asarray(points2Inliers), (warp_mode == cv2.MOTION_AFFINE))
+        if a is None:
+            return False, np.identity(3), 0
         h = np.identity(3)
 
         # turn in 3x3 transform
         h[0,:] = a[0,:]
         h[1,:] = a[1,:]
 
-    return True, h
+    return True, h, sum(mask)
 
 # projective transform of a point
 def warpPoint(pt, h):
