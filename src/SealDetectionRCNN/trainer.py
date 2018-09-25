@@ -236,7 +236,8 @@ class FasterRCNNTrainer(nn.Module):
     def update_meters(self, losses):
         loss_d = {k: at.scalar(v) for k, v in losses._asdict().items()}
         for key, meter in self.meters.items():
-            meter.add(loss_d[key])
+            # meter.add(loss_d[key])
+            meter.add(loss_d[key].detach().cpu().numpy())
 
     def reset_meters(self):
         for key, meter in self.meters.items():

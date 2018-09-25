@@ -8,5 +8,5 @@ python train.py train \
 --num_epochs=200 \
 --epoch_decay=150 \
 --plot_every=20 
+# --load_path='checkpoints/fasterrcnn_09190146_0.7964509332855452'
 # --max_size=5000
-#--load_path='checkpoints/fasterrcnn_07101509'
