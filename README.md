@@ -71,6 +71,12 @@ Hackathon members are welcome to add whatever code you like to this repo, but pl
     * Alternatively, it is also ok if your code only builds from within an IDE; if so just make a note of that in your `README.md`.
 * If applicable, add a script that runs your code to the root directory. If it takes command line arguments, please show help text if it is run without arguments.
 
+## Notes
+
+Additional notes from 10/16/2018 NOAA sync meeting.
+
+* Filename timestamps with very small millisecond values are actually for the previous second. Metadata for a given image will have the correct timestamp.
+
 # Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
