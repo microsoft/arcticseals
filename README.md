@@ -8,8 +8,8 @@ To get write access to this repo, submit a request [here](https://github.com/org
 
 The `data` directory contains the following dataset files from NOAA: 
 
-* `train.csv` (5,256 records): Hotspot detection data for which we have all corresponding imagery data (see below). Currently all of these hotspots refer to images in dataset ArcticSealsData01.
-* `test.csv` (1,368 records): Same format and distrbution of `train.csv`, suitable for cross-validation. 
+* `train.csv` (5,137 records): Hotspot detection data for which we have all corresponding imagery data (see below). Currently all of these hotspots refer to images in dataset ArcticSealsData01.
+* `test.csv` (1,323 records): Same format and distrbution of `train.csv`, suitable for cross-validation. 
 
 Each record in the CSV files refers to a hotspot that the NOAA thermal detection system picked up and that was classified by a human into either "Animal" (true positive) or "Anomaly" (false positive). Each hotspot is unique (no duplicates). The column schema is as follows:
 
@@ -44,6 +44,8 @@ The thermal data, since it's relatively small, has been combined into fewer file
 * `ArcticSealsData01_Thermal` (1GB): [tar](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData01_Thermal.tar) [vhdx](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData01_Thermal.vhdx)
 * `ArcticSealsData02-07_Thermal` (31GB): [tar](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData02-07_Thermal.tar) [vhdx](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData02-07_Thermal.vhdx)
 * `ArcticSealsData08-99_Thermal` (41GB): [tar](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData08-99_Thermal.tar) [vhdx](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData08-99_Thermal.vhdx)
+
+Our annotations provided in raw.csv, train.csv, and test.csv only refer to images in blob 01, i.e. to ArcticSealsData01_Color.tar and ArcticSealsData01_Thermal.tar. 
 
 In Windows, you can easily mount the .vhdx files on your machine by double-clicking them.
 
