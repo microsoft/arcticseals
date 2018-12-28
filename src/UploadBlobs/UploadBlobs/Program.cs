@@ -5,13 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Diagnostics;
 
 namespace UploadBlobs
 {
 	internal class Constants
 	{
 		public static long BytesPerGB = 1024 * 1024 * 1024;
-		public static long MaxBlobSizeInBytes = 4 * BytesPerGB;
+		public static long MaxBlobSizeInBytes = 400 * BytesPerGB;
 	}
 
 	internal class ImageFile
@@ -81,19 +82,26 @@ namespace UploadBlobs
 			}
 		}
 
-		public void Upload(string tempDir, Action onComplete, Func<bool> shouldStop)
+		public void Upload(string tempDir, Action<double, double> onComplete, Func<bool> shouldStop)
 		{
 			if (shouldStop())
 				return;
 
+			var createStopwatch = new Stopwatch();
+			var uploadStopwatch = new Stopwatch();
+
 			try
 			{
+				createStopwatch.Start();
 				var archiveFilePath = CreateArchive(tempDir);
+				createStopwatch.Stop();
 
 				if (shouldStop())
 					return;
 
+				uploadStopwatch.Start();
 				UploadArchive(archiveFilePath);
+				uploadStopwatch.Stop();
 
 				File.Delete(archiveFilePath);
 			}
@@ -102,7 +110,9 @@ namespace UploadBlobs
 				Console.WriteLine("Error uploading {0}: {1}", Name, e);
 			}
 
-			onComplete();
+			onComplete(
+				SizeInBytes / (createStopwatch.ElapsedMilliseconds / 1000.0),
+				SizeInBytes / (uploadStopwatch.ElapsedMilliseconds / 1000.0));
 		}
 
 		private string CreateArchive(string tempDir)
@@ -110,7 +120,7 @@ namespace UploadBlobs
 			var archiveFilePath = Path.Combine(tempDir, Name) + ".zip";
 			Console.WriteLine("Creating archive: {0}", archiveFilePath);
 			File.WriteAllText(archiveFilePath, "dummy");
-			Thread.Sleep(2000);
+			Thread.Sleep(4000);
 			// TODO
 			return archiveFilePath;
 		}
@@ -118,7 +128,7 @@ namespace UploadBlobs
 		private void UploadArchive(string archiveFilePath)
 		{
 			Console.WriteLine("Uploading archive: {0}", archiveFilePath);
-			Thread.Sleep(4000);
+			Thread.Sleep(6000);
 			// TODO
 		}
 	}
@@ -230,8 +240,8 @@ namespace UploadBlobs
 			foreach (var filePath in filePaths)
 			{
 				// Temp
-				if (_totalImageFilesAdded > 50000)
-					return;
+				//if (_totalImageFilesAdded > 50000)
+					//return;
 
 				var extension = Path.GetExtension(filePath).ToLowerInvariant();
 				if (extension == ".png" || extension == ".jpg")
@@ -275,6 +285,8 @@ namespace UploadBlobs
 		private List<Blob> _completedBlobs = new List<Blob>();
 		private List<Blob> _uploadingBlobs = new List<Blob>();
 		private Queue<Blob> _pendingBlobs = new Queue<Blob>();
+		double _lastCreateBytesPerSecond = 0;
+		double _lastUploadBytesPerSecond = 0;
 		private Mutex _mutex = new Mutex();
 
 		public RunCommand(string tempDir, long tempDirQuotaInBytes, string azureToken)
@@ -324,10 +336,10 @@ namespace UploadBlobs
 			{
 				lock (_mutex)
 				{
-					if (_pendingBlobs.Count == 0)
+					if (_pendingBlobs.Count == 0 || ShouldStop())
 						return;
 
-					while (TempDirQuotaUsedInBytes() + _pendingBlobs.Peek().SizeInBytes < _tempDirQuotaInBytes)
+					while (TempDirQuotaBytesUsed() + _pendingBlobs.Peek().SizeInBytes < _tempDirQuotaInBytes)
 					{
 						var blob = _pendingBlobs.Dequeue();
 						_uploadingBlobs.Add(blob);
@@ -335,49 +347,59 @@ namespace UploadBlobs
 						{
 							blob.Upload(
 								_tempDir,
-								() => { CompleteBlob(blob); }, /*onComplete*/
-								() => { return File.Exists(_stopSentinelFilePath); } /*shouldStop*/);
+								(createBytesPerSecond, uploadBytesPerSecond) => { CompleteBlob(blob, createBytesPerSecond, uploadBytesPerSecond); },
+								ShouldStop);
 						});
 						thread.Start();
 					}
+
+					Console.WriteLine("\r{0} blob(s) completed, {1} blob(s) uploading, {2} blob(s) pending ({3:0}Mbps creation, {4:0}Mbps upload)     ",
+						_completedBlobs.Count,
+						_uploadingBlobs.Count,
+						_pendingBlobs.Count,
+						_lastCreateBytesPerSecond / (1000.0 * 1000.0),
+						_lastUploadBytesPerSecond / (1000.0 * 1000.0));
 				}
 
 				Thread.Sleep(500);
 			}
-			var blobs = new List<Blob>(_pendingBlobs);
-			var result = Parallel.ForEach(blobs, blob => blob.Upload(
-				_tempDir,
-				x => { CompleteBlob(x); }, /*onComplete*/
-				() => { return File.Exists(_stopSentinelFilePath); } /*shouldStop*/));
-
-			while (!result.IsCompleted)
-			{
-				lock (_mutex)
-				{
-					Console.WriteLine("{0} blob(s) uploaded, {1} blob(s) remaining", _completedBlobs.Count, _pendingBlobs.Count);
-				}
-			}
 		}
 
-		private long TempDirQuotaUsedInBytes()
+		private long TempDirQuotaBytesUsed()
 		{
 			long bytes = 0;
 			_uploadingBlobs.ForEach(x => bytes += x.SizeInBytes);
 			return bytes;
 		}
 
-		private void CompleteBlob(Blob blob, bool updateFile = true)
+		private void CompleteBlob(Blob blob, double createBytesPerSecond, double uploadBytesPerSecond)
 		{
 			lock (_mutex)
 			{
 				_completedBlobs.Add(blob);
 				_uploadingBlobs.Remove(blob);
+				_lastCreateBytesPerSecond = createBytesPerSecond;
+				_lastUploadBytesPerSecond = uploadBytesPerSecond;
 
 				using (var writer = File.AppendText(_completedBlobsFilePath))
 				{
 					writer.WriteLine(blob.Name);
 				}
 			}
+		}
+
+		private bool ShouldStop()
+		{
+			lock (_mutex)
+			{
+				if (File.Exists(_stopSentinelFilePath))
+				{
+					Console.WriteLine("Stop signal received");
+					File.Delete(_stopSentinelFilePath);
+					return true;
+				}
+			}
+			return false;
 		}
 	}
 
