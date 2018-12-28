@@ -1,0 +1,401 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Threading;
+
+namespace UploadBlobs
+{
+	internal class Constants
+	{
+		public static long BytesPerGB = 1024 * 1024 * 1024;
+		public static long MaxBlobSizeInBytes = 4 * BytesPerGB;
+	}
+
+	internal class ImageFile
+	{
+		public string Path { get; set; }
+		public long SizeInBytes { get; set; }
+	};
+
+	internal class Blob
+	{
+		public static string ManifestSuffix = "-manifest.txt";
+
+		public string Name { get; set; }
+		public List<ImageFile> ImageFiles { get; private set; }
+		public long SizeInBytes { get; set; }
+		public long MaxSizeInBytes { get; private set; }
+
+		public Blob(string name, long maxSizeInBytes)
+		{
+			Name = name;
+			ImageFiles = new List<ImageFile>();
+			SizeInBytes = 0;
+			MaxSizeInBytes = maxSizeInBytes;
+		}
+
+		public bool CanAddImageFile(ImageFile imageFile)
+		{
+			return SizeInBytes + imageFile.SizeInBytes <= MaxSizeInBytes;
+		}
+
+		public void AddImageFile(ImageFile imageFile)
+		{
+			if (!CanAddImageFile(imageFile))
+			{
+				throw new ArgumentException();
+			}
+
+			ImageFiles.Add(imageFile);
+			SizeInBytes += imageFile.SizeInBytes;
+		}
+
+		public string GetManifestFilePath(string dir)
+		{
+			return Path.Combine(dir, String.Format("{0}{1}", Name, ManifestSuffix));
+		}
+
+		public void AddImageFilesFromManifest(string manifestFilePath)
+		{
+			foreach (var line in File.ReadLines(manifestFilePath))
+			{
+				var split = line.Split(';');
+				var imageFile = new ImageFile();
+				imageFile.Path = split[0];
+				imageFile.SizeInBytes = long.Parse(split[1]);
+				AddImageFile(imageFile);
+			}
+		}
+
+		public void WriteManifest(string manifestFilePath)
+		{
+			using (var writer = File.CreateText(manifestFilePath))
+			{
+				foreach (var imageFile in ImageFiles)
+				{
+					writer.WriteLine("{0};{1}", imageFile.Path, imageFile.SizeInBytes);
+				}
+			}
+		}
+
+		public void Upload(string tempDir, Action<Blob> onComplete, Func<bool> shouldStop)
+		{
+			if (shouldStop())
+				return;
+
+			try
+			{
+				var archiveFilePath = CreateArchive(tempDir);
+
+				if (shouldStop())
+					return;
+
+				UploadArchive(archiveFilePath);
+
+				File.Delete(archiveFilePath);
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine("Error uploading {0}: {1}", Name, e);
+			}
+
+			onComplete(this);
+		}
+
+		private string CreateArchive(string tempDir)
+		{
+			var archiveFilePath = Path.Combine(tempDir, Name) + ".zip";
+			Console.WriteLine("Creating archive: {0}", archiveFilePath);
+			File.WriteAllText(archiveFilePath, "dummy");
+			Thread.Sleep(2000);
+			// TODO
+			return archiveFilePath;
+		}
+		
+		private void UploadArchive(string archiveFilePath)
+		{
+			Console.WriteLine("Uploading archive: {0}", archiveFilePath);
+			Thread.Sleep(4000);
+			// TODO
+		}
+	}
+
+	internal class BlobGroup
+	{
+		private List<ImageFile> _queuedImageFiles = new List<ImageFile>();
+
+		public string Name { get; private set; }
+		public List<Blob> Blobs { get; private set; }
+
+		public BlobGroup(string name)
+		{
+			Name = name;
+			Blobs = new List<Blob>();
+		}
+
+		public void AddImageFile(ImageFile imageFile)
+		{
+			_queuedImageFiles.Add(imageFile);
+		}
+
+		public void FinalizeBlobs()
+		{
+			_queuedImageFiles.Sort((a, b) => a.Path.CompareTo(b.Path));
+			_queuedImageFiles.ForEach(imageFile =>
+			{
+				bool needNewBlob = Blobs.Count == 0 || !Blobs.Last().CanAddImageFile(imageFile);
+
+				if (needNewBlob)
+				{
+					var blobName = String.Format("{0}_{1:00}", Name, Blobs.Count());
+					Blobs.Add(new Blob(blobName, Blobs.Count == 0 ? Constants.MaxBlobSizeInBytes / 10 : Constants.MaxBlobSizeInBytes)); // First blob is 10% the size of the rest
+				}
+
+				Blobs.Last().AddImageFile(imageFile);
+			});
+		}
+
+		public void WriteManifests(string tempDir)
+		{
+			foreach (var blob in Blobs)
+			{
+				blob.WriteManifest(blob.GetManifestFilePath(tempDir));
+			}
+		}
+	}
+
+	internal class PrepCommand
+	{
+		private string _tempDir;
+		private string[] _sourceDirs;
+		private Dictionary<string, BlobGroup> _blobGroupsByName = new Dictionary<string, BlobGroup>();
+		private List<string> _skippedImageFiles = new List<string>();
+		private int _totalImageFilesAdded = 0;
+
+		public PrepCommand(string tempDir, string[] sourceDirs)
+		{
+			_tempDir = tempDir;
+			_sourceDirs = sourceDirs;
+		}
+
+		public void Execute()
+		{
+			foreach (var sourceDir in _sourceDirs)
+			{
+				AddImageFilesInSourceDir(sourceDir);
+			}
+
+			foreach (var blobGroup in _blobGroupsByName.Values)
+			{
+				blobGroup.FinalizeBlobs();
+				blobGroup.WriteManifests(_tempDir);
+			}
+
+			PrintPlan();
+		}
+
+		private void AddImageFilesInSourceDir(string path)
+		{
+			foreach (var blobGroupDir in Directory.GetDirectories(path).Where(x => { return !x.Contains("System Volume Information") && !x.Contains("$RECYCLE"); }))
+			{
+				AddImageFilesInBlobGroupDir(blobGroupDir);
+			}
+		}
+
+		private void AddImageFilesInBlobGroupDir(string blobGroupDir)
+		{
+			var blobGroupName = Path.GetFileName(blobGroupDir);
+
+			// Some directories have names that should all resolve to this base name if it is contained as a substring
+			const string SpecialCaseHackBlobGroup = "TrainingBackground_ColorImages";
+			if (blobGroupName.Contains(SpecialCaseHackBlobGroup))
+			{
+				blobGroupName = SpecialCaseHackBlobGroup;
+			}
+
+			if (!_blobGroupsByName.ContainsKey(blobGroupName))
+			{
+				_blobGroupsByName.Add(blobGroupName, new BlobGroup(blobGroupName));
+			}
+			var blobGroup = _blobGroupsByName[blobGroupName];
+
+			AddImageFilesToBlobGroup(Directory.GetFiles(blobGroupDir), blobGroup);
+		}
+
+		private void AddImageFilesToBlobGroup(string[] filePaths, BlobGroup blobGroup)
+		{
+			foreach (var filePath in filePaths)
+			{
+				// Temp
+				if (_totalImageFilesAdded > 50000)
+					return;
+
+				var extension = Path.GetExtension(filePath).ToLowerInvariant();
+				if (extension == ".png" || extension == ".jpg")
+				{
+					var imageFile = new ImageFile();
+					imageFile.Path = filePath;
+					imageFile.SizeInBytes = new FileInfo(filePath).Length;
+					blobGroup.AddImageFile(imageFile);
+
+					if (++_totalImageFilesAdded % 1000 == 0)
+					{
+						Console.Write("\r{0} files added, {1} files skipped", _totalImageFilesAdded, _skippedImageFiles.Count);
+					}
+				}
+				else
+				{
+					_skippedImageFiles.Add(filePath);
+				}
+			}
+		}
+
+		private void PrintPlan()
+		{
+			Console.WriteLine("");
+			foreach (var blobGroup in _blobGroupsByName.Values)
+			{
+				Console.WriteLine("{0} ({1} blobs to upload)", blobGroup.Name, blobGroup.Blobs.Count);
+			}
+			Console.WriteLine("{0} skipped files", _skippedImageFiles.Count);
+		}
+	}
+
+	internal class RunCommand
+	{
+		private string _tempDir;
+		private long _tempDirQuotaInBytes;
+		private string _azureToken;
+		private string _completedBlobsFilePath;
+		private string _stopSentinelFilePath;
+
+		private List<Blob> _completedBlobs = new List<Blob>();
+		private List<Blob> _uploadingBlobs = new List<Blob>();
+		private List<Blob> _pendingBlobs = new List<Blob>();
+		private Mutex _mutex = new Mutex();
+
+		public RunCommand(string tempDir, long tempDirQuotaInBytes, string azureToken)
+		{
+			_tempDir = tempDir;
+			_tempDirQuotaInBytes = tempDirQuotaInBytes;
+			_azureToken = azureToken;
+
+			_completedBlobsFilePath = Path.Combine(_tempDir, "completed.txt");
+			_stopSentinelFilePath = Path.Combine(_tempDir, "stop.txt");
+		}
+
+		public void Execute()
+		{
+			LoadBlobs();
+			ProcessCompletedBlobs();
+			UploadBlobs();
+		}
+
+		private void LoadBlobs()
+		{
+			foreach (var blobManifestFilePath in Directory.EnumerateFiles(_tempDir, "*" + Blob.ManifestSuffix))
+			{
+				var blobManifestFileName = Path.GetFileName(blobManifestFilePath);
+				var blobName = blobManifestFileName.Substring(0, blobManifestFileName.IndexOf(Blob.ManifestSuffix));
+				var blob = new Blob(blobName, long.MaxValue);
+				blob.AddImageFilesFromManifest(blobManifestFilePath);
+				_pendingBlobs.Add(blob);
+			}
+		}
+
+		private void ProcessCompletedBlobs()
+		{
+			if (File.Exists(_completedBlobsFilePath))
+			{
+				var lines = File.ReadLines(_completedBlobsFilePath);
+				foreach (var line in lines)
+				{
+					var blob = _pendingBlobs.Find(x => x.Name == line);
+					if (blob != null)
+					{
+						CompleteBlob(blob, false/*updateFile*/);
+					}
+				}
+			}
+		}
+
+		private void UploadBlobs()
+		{
+			while (true)
+			{
+				lock (_mutex)
+				{
+					if (_pendingBlobs.Count == 0)
+						return;
+
+
+				}
+
+				Thread.Sleep(500);
+			}
+			var blobs = new List<Blob>(_pendingBlobs);
+			var result = Parallel.ForEach(blobs, blob => blob.Upload(
+				_tempDir,
+				x => { CompleteBlob(x); }, /*onComplete*/
+				() => { return File.Exists(_stopSentinelFilePath); } /*shouldStop*/));
+
+			while (!result.IsCompleted)
+			{
+				lock (_mutex)
+				{
+					Console.WriteLine("{0} blob(s) uploaded, {1} blob(s) remaining", _completedBlobs.Count, _pendingBlobs.Count);
+				}
+			}
+		}
+
+
+
+		private void CompleteBlob(Blob blob, bool updateFile = true)
+		{
+			lock (_mutex)
+			{
+				_completedBlobs.Add(blob);
+				_uploadingBlobs.Remove(blob);
+				_pendingBlobs.Remove(blob);
+
+				if (updateFile)
+				{
+					using (var writer = File.AppendText(_completedBlobsFilePath))
+					{
+						writer.WriteLine(blob.Name);
+					}
+				}
+			}
+		}
+	}
+
+	class Program
+	{
+		static void Main(string[] args)
+		{
+			if(args.Length < 2)
+			{
+				Console.WriteLine("USAGE:");
+				Console.WriteLine("");
+				Console.WriteLine("UploadBlobs prep <comma-separated source dirs>");
+				Console.WriteLine("UploadBlobs run <temp quota in GB> <Azure SAS URL token>");
+				Console.WriteLine("");
+				Console.WriteLine("Temp files are stored in current directory.");
+				return;
+			}
+			if (args[0].Equals("prep", StringComparison.OrdinalIgnoreCase))
+			{
+				var command = new PrepCommand(Directory.GetCurrentDirectory(), args[1].Split(','));
+				command.Execute();
+			}
+			else if (args[0].Equals("run", StringComparison.OrdinalIgnoreCase))
+			{
+				var command = new RunCommand(Directory.GetCurrentDirectory(), Constants.BytesPerGB * int.Parse(args[1]), args[2]);
+				command.Execute();
+			}
+		}
+	}
+}
