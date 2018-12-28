@@ -134,7 +134,6 @@ namespace UploadBlobs
 						foreach (var imageFile in ImageFiles)
 						{
 							zipArchive.CreateEntryFromFile(imageFile.Path, Path.GetFileName(imageFile.Path), CompressionLevel.NoCompression);
-							break; //TEMP
 						}
 					}
 				}
