@@ -81,7 +81,7 @@ namespace UploadBlobs
 			}
 		}
 
-		public void Upload(string tempDir, Action<Blob> onComplete, Func<bool> shouldStop)
+		public void Upload(string tempDir, Action onComplete, Func<bool> shouldStop)
 		{
 			if (shouldStop())
 				return;
@@ -102,7 +102,7 @@ namespace UploadBlobs
 				Console.WriteLine("Error uploading {0}: {1}", Name, e);
 			}
 
-			onComplete(this);
+			onComplete();
 		}
 
 		private string CreateArchive(string tempDir)
@@ -274,7 +274,7 @@ namespace UploadBlobs
 
 		private List<Blob> _completedBlobs = new List<Blob>();
 		private List<Blob> _uploadingBlobs = new List<Blob>();
-		private List<Blob> _pendingBlobs = new List<Blob>();
+		private Queue<Blob> _pendingBlobs = new Queue<Blob>();
 		private Mutex _mutex = new Mutex();
 
 		public RunCommand(string tempDir, long tempDirQuotaInBytes, string azureToken)
@@ -290,35 +290,31 @@ namespace UploadBlobs
 		public void Execute()
 		{
 			LoadBlobs();
-			ProcessCompletedBlobs();
 			UploadBlobs();
 		}
 
 		private void LoadBlobs()
 		{
+			var completedBlobNames = new HashSet<string>();
+			if (File.Exists(_completedBlobsFilePath))
+			{
+				var lines = File.ReadLines(_completedBlobsFilePath);
+				foreach (var line in lines)
+				{
+					completedBlobNames.Add(line);
+				}
+			}
+
 			foreach (var blobManifestFilePath in Directory.EnumerateFiles(_tempDir, "*" + Blob.ManifestSuffix))
 			{
 				var blobManifestFileName = Path.GetFileName(blobManifestFilePath);
 				var blobName = blobManifestFileName.Substring(0, blobManifestFileName.IndexOf(Blob.ManifestSuffix));
 				var blob = new Blob(blobName, long.MaxValue);
 				blob.AddImageFilesFromManifest(blobManifestFilePath);
-				_pendingBlobs.Add(blob);
-			}
-		}
-
-		private void ProcessCompletedBlobs()
-		{
-			if (File.Exists(_completedBlobsFilePath))
-			{
-				var lines = File.ReadLines(_completedBlobsFilePath);
-				foreach (var line in lines)
-				{
-					var blob = _pendingBlobs.Find(x => x.Name == line);
-					if (blob != null)
-					{
-						CompleteBlob(blob, false/*updateFile*/);
-					}
-				}
+				if (completedBlobNames.Contains(blobName))
+					_completedBlobs.Add(blob);
+				else
+					_pendingBlobs.Enqueue(blob);
 			}
 		}
 
@@ -331,7 +327,19 @@ namespace UploadBlobs
 					if (_pendingBlobs.Count == 0)
 						return;
 
-
+					while (TempDirQuotaUsedInBytes() + _pendingBlobs.Peek().SizeInBytes < _tempDirQuotaInBytes)
+					{
+						var blob = _pendingBlobs.Dequeue();
+						_uploadingBlobs.Add(blob);
+						var thread = new Thread(() =>
+						{
+							blob.Upload(
+								_tempDir,
+								() => { CompleteBlob(blob); }, /*onComplete*/
+								() => { return File.Exists(_stopSentinelFilePath); } /*shouldStop*/);
+						});
+						thread.Start();
+					}
 				}
 
 				Thread.Sleep(500);
@@ -351,7 +359,12 @@ namespace UploadBlobs
 			}
 		}
 
-
+		private long TempDirQuotaUsedInBytes()
+		{
+			long bytes = 0;
+			_uploadingBlobs.ForEach(x => bytes += x.SizeInBytes);
+			return bytes;
+		}
 
 		private void CompleteBlob(Blob blob, bool updateFile = true)
 		{
@@ -359,14 +372,10 @@ namespace UploadBlobs
 			{
 				_completedBlobs.Add(blob);
 				_uploadingBlobs.Remove(blob);
-				_pendingBlobs.Remove(blob);
 
-				if (updateFile)
+				using (var writer = File.AppendText(_completedBlobsFilePath))
 				{
-					using (var writer = File.AppendText(_completedBlobsFilePath))
-					{
-						writer.WriteLine(blob.Name);
-					}
+					writer.WriteLine(blob.Name);
 				}
 			}
 		}
