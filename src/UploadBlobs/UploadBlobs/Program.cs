@@ -123,7 +123,7 @@ namespace UploadBlobs
 		public void Archive(string tempDir, Action onComplete, Func<bool> shouldStop)
 		{
 			var archiveFilePath = GetArchiveFilePath(tempDir);
-			Console.WriteLine("Archiving {0} ({1} files, {2:0.0}GB, primary drive {3})", Name, ImageFiles.Count, SizeInBytes / ((double)Constants.BytesPerGB), PrimarySourceDrive);
+			Program.Log("Archiving {0} ({1} files, {2:0.0}GB, primary drive {3})", Name, ImageFiles.Count, SizeInBytes / ((double)Constants.BytesPerGB), PrimarySourceDrive);
 
 			try
 			{
@@ -134,13 +134,14 @@ namespace UploadBlobs
 						foreach (var imageFile in ImageFiles)
 						{
 							zipArchive.CreateEntryFromFile(imageFile.Path, Path.GetFileName(imageFile.Path), CompressionLevel.NoCompression);
+							break; //TEMP
 						}
 					}
 				}
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine("ERROR archiving {0}: {1}", Name, e);
+				Program.Log("ERROR archiving {0}: {1}", Name, e);
 			}
 
 			onComplete();
@@ -148,21 +149,39 @@ namespace UploadBlobs
 
 		public void Upload(string tempDir, string azureToken, Action onComplete, Func<bool> shouldStop)
 		{
-			Console.WriteLine("Uploading {0}", Name);
+			// The Azure blob API allocates memory for the entire blob being uploaded, so skip this for now... upload has to be done manually.
+			// See https://stackoverflow.com/questions/53963069/how-to-avoid-c-sharp-azure-api-from-running-out-of-memory-for-large-blob-uploads
+			onComplete();
+			return;
+
+			Program.Log("Uploading {0}", Name);
 
 			try
 			{
 				var container = new CloudBlobContainer(new Uri(azureToken));
 
 				var archiveFilePath = GetArchiveFilePath(tempDir);
-				var blob = container.GetBlockBlobReference(Path.GetFileName(archiveFilePath));
-				blob.UploadFromFile(archiveFilePath);
+				var blob = container.GetBlockBlobReference(Path.GetFileName(archiveFilePath) + "-test");
+				const int bufferSize = 64 * 1024 * 1024; // 64MB
+				blob.StreamWriteSizeInBytes = bufferSize;
+				using (var writeStream = blob.OpenWrite())
+				{
+					using (var readStream = new FileStream(archiveFilePath, FileMode.Open))
+					{
+						var buffer = new byte[bufferSize];
+						var bytesRead = 0;
+						while ((bytesRead = readStream.Read(buffer, 0, bufferSize)) != 0)
+						{
+							writeStream.Write(buffer, 0, bytesRead);
+						}
+					}
+				}
 
 				File.Delete(archiveFilePath);
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine("Error uploading {0}: {1}", Name, e);
+				Program.Log("Error uploading {0}: {1}", Name, e);
 			}
 
 			onComplete();
@@ -275,7 +294,7 @@ namespace UploadBlobs
 		{
 			foreach (var filePath in filePaths)
 			{
-				// Temp
+				// Uncomment for testing
 				//if (_totalImageFilesAdded > 50000)
 					//return;
 
@@ -313,7 +332,6 @@ namespace UploadBlobs
 	internal class RunCommand
 	{
 		private string _tempDir;
-		private long _tempDirQuotaInBytes;
 		private string _azureToken;
 		private string _uploadedBlobsFilePath;
 		private string _stopSentinelFilePath;
@@ -327,10 +345,9 @@ namespace UploadBlobs
 		private Stopwatch _stopwatch = new Stopwatch();
 		private Mutex _mutex = new Mutex();
 
-		public RunCommand(string tempDir, long tempDirQuotaInBytes, string azureToken)
+		public RunCommand(string tempDir, string azureToken)
 		{
 			_tempDir = tempDir;
-			_tempDirQuotaInBytes = tempDirQuotaInBytes;
 			_azureToken = azureToken;
 
 			_uploadedBlobsFilePath = Path.Combine(_tempDir, "uploaded.txt");
@@ -370,7 +387,7 @@ namespace UploadBlobs
 				}
 			}
 
-			Console.WriteLine("Uploading {0} blobs ({1:0.0}GB) containing {2} files", _pendingBlobs.Count, _totalBytesToUpload / Constants.BytesPerGB, totalImageFiles);
+			Program.Log("Uploading {0} blobs ({1:0.0}GB) containing {2} files", _pendingBlobs.Count, _totalBytesToUpload / ((double)Constants.BytesPerGB), totalImageFiles);
 		}
 
 		private void ProcessBlobs()
@@ -390,17 +407,14 @@ namespace UploadBlobs
 						var sourceDrivesInUse = new HashSet<string>();
 						_archivingBlobs.ForEach(x => sourceDrivesInUse.Add(x.PrimarySourceDrive));
 
-						var tempDirQuotaBytesInUse = TempDirQuotaBytesInUse();
-
 						var blob = _pendingBlobs.FirstOrDefault(x =>
 							!sourceDrivesInUse.Contains(x.PrimarySourceDrive) &&
-							tempDirQuotaBytesInUse + x.SizeInBytes < _tempDirQuotaInBytes);
+							SufficientTempDirSpaceForArchive(x.SizeInBytes));
 
 						// If we couldn't find a pending blob using a different drive, look for any blob that fits in the remaining quota
 						if (blob == null)
 						{
-							blob = _pendingBlobs.FirstOrDefault(x =>
-								tempDirQuotaBytesInUse + x.SizeInBytes < _tempDirQuotaInBytes);
+							blob = _pendingBlobs.FirstOrDefault(x => SufficientTempDirSpaceForArchive(x.SizeInBytes));
 						}
 
 						if (blob != null)
@@ -434,13 +448,20 @@ namespace UploadBlobs
 			}
 		}
 
-		private long TempDirQuotaBytesInUse()
+		private bool SufficientTempDirSpaceForArchive(long archiveSizeInBytes)
 		{
-			long bytes = 0;
-			_archivingBlobs.ForEach(x => bytes += x.SizeInBytes);
-			_archivedBlobs.ForEach(x => bytes += x.SizeInBytes);
-			_uploadingBlobs.ForEach(x => bytes += x.SizeInBytes);
-			return bytes;
+			var tempDrive = _tempDir.Substring(0, 3).ToLowerInvariant();
+			long tempDriveFreeSpaceInBytes = 0;
+			foreach (DriveInfo drive in DriveInfo.GetDrives())
+			{
+				if (drive.IsReady && drive.Name.ToLowerInvariant() == tempDrive)
+				{
+					tempDriveFreeSpaceInBytes = drive.AvailableFreeSpace;
+					break;
+				}
+			}
+
+			return tempDriveFreeSpaceInBytes - archiveSizeInBytes > 100 * Constants.BytesPerGB; // Leave 100GB buffer
 		}
 
 		private long BytesUploaded()
@@ -473,10 +494,11 @@ namespace UploadBlobs
 
 				double fractionDone = BytesUploaded() / ((double)_totalBytesToUpload);
 
-				Console.WriteLine("Uploaded blob {0} ({1:0.0}% done, {2:0.0} hours remaining)",
+				Console.WriteLine("{3}: Completed {0} ({1:0.0}% done, {2:0.0} hours remaining)",
 					blob.Name,
 					100.0 * fractionDone,
-					_stopwatch.Elapsed.TotalHours / fractionDone - _stopwatch.Elapsed.TotalHours);
+					_stopwatch.Elapsed.TotalHours / fractionDone - _stopwatch.Elapsed.TotalHours,
+					DateTime.Now);
 			}
 		}
 
@@ -502,7 +524,7 @@ namespace UploadBlobs
 				Console.WriteLine("USAGE:");
 				Console.WriteLine("");
 				Console.WriteLine("UploadBlobs prep <comma-separated source dirs>");
-				Console.WriteLine("UploadBlobs run <temp quota in GB> <Azure SAS URL token>");
+				Console.WriteLine("UploadBlobs run <Azure SAS URL token>");
 				Console.WriteLine("");
 				Console.WriteLine("Temp files are stored in current directory.");
 				return;
@@ -514,9 +536,14 @@ namespace UploadBlobs
 			}
 			else if (args[0].Equals("run", StringComparison.OrdinalIgnoreCase))
 			{
-				var command = new RunCommand(Directory.GetCurrentDirectory(), Constants.BytesPerGB * int.Parse(args[1]), args[2]);
+				var command = new RunCommand(Directory.GetCurrentDirectory(), args[1]);
 				command.Execute();
 			}
+		}
+
+		static public void Log(string format, params object[] args)
+		{
+			Console.WriteLine("{0}: {1}", DateTime.Now, String.Format(format, args));
 		}
 	}
 }
