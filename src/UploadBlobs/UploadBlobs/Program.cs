@@ -357,6 +357,7 @@ namespace UploadBlobs
 		{
 			LoadBlobs();
 			ProcessBlobs();
+			WriteManifest();
 		}
 
 		private void LoadBlobs()
@@ -384,6 +385,10 @@ namespace UploadBlobs
 					totalImageFiles += blob.ImageFiles.Count;
 					_totalBytesToUpload += blob.SizeInBytes;
 				}
+				else
+				{
+					_uploadedBlobs.Add(blob);
+				}
 			}
 
 			Program.Log("Uploading {0} blobs ({1:0.0}GB) containing {2} files", _pendingBlobs.Count, _totalBytesToUpload / ((double)Constants.BytesPerGB), totalImageFiles);
@@ -403,18 +408,13 @@ namespace UploadBlobs
 					// Look for pending blobs ready to archive
 					if (_pendingBlobs.Count > 0)
 					{
+						// Only process one blob per source drive at a time (otherwise contention makes things slower overall)
 						var sourceDrivesInUse = new HashSet<string>();
 						_archivingBlobs.ForEach(x => sourceDrivesInUse.Add(x.PrimarySourceDrive));
 
 						var blob = _pendingBlobs.FirstOrDefault(x =>
 							!sourceDrivesInUse.Contains(x.PrimarySourceDrive) &&
 							SufficientTempDirSpaceForArchive(x.SizeInBytes));
-
-						// If we couldn't find a pending blob using a different drive, look for any blob that fits in the remaining quota
-						if (blob == null)
-						{
-							blob = _pendingBlobs.FirstOrDefault(x => SufficientTempDirSpaceForArchive(x.SizeInBytes));
-						}
 
 						if (blob != null)
 						{
@@ -447,6 +447,29 @@ namespace UploadBlobs
 			}
 		}
 
+		private void WriteManifest()
+		{
+			var manifestFilePath = Path.Combine(_tempDir, "manifest.txt");
+			var count = 0;
+			_uploadedBlobs.Sort((a, b) => { return a.Name.CompareTo(b.Name); });
+			using (var writer = new StreamWriter(manifestFilePath))
+			{
+				foreach (var blob in _uploadedBlobs)
+				{
+					foreach (var imageFile in blob.ImageFiles)
+					{
+						if (blob.Name.Contains(",") || Path.GetFileName(imageFile.Path).Contains(","))
+						{
+							throw new ArgumentException();
+						}
+						writer.WriteLine(String.Format("{0},{1}.zip", Path.GetFileName(imageFile.Path), blob.Name));
+						count++;
+					}
+				}
+			}
+			Program.Log("Wrote manifest with {0} entries", count);
+		}
+
 		private bool SufficientTempDirSpaceForArchive(long archiveSizeInBytes)
 		{
 			var tempDrive = _tempDir.Substring(0, 3).ToLowerInvariant();
@@ -460,7 +483,11 @@ namespace UploadBlobs
 				}
 			}
 
-			return tempDriveFreeSpaceInBytes - archiveSizeInBytes > 100 * Constants.BytesPerGB; // Leave 100GB buffer
+			// The following will result in some double-counting with the above, but it's ok, it'll just make us more conservative
+			long currentlyArchivingSizeInBytes = 0;
+			_archivingBlobs.ForEach(x => currentlyArchivingSizeInBytes += x.SizeInBytes);
+
+			return tempDriveFreeSpaceInBytes - currentlyArchivingSizeInBytes - archiveSizeInBytes > 5 * Constants.BytesPerGB; // Leave 5GB buffer
 		}
 
 		private long BytesUploaded()
