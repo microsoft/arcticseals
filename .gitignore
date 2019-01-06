@@ -5,6 +5,7 @@ __pycache__/
 *.pth
 src/SealDetectionRCNN/checkpoints
 src/SealDetectionRCNN/log
+src/SealDetectionAPI/models/*
 
 # C extensions
 *.so

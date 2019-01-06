@@ -24,7 +24,7 @@ import PIL.ImageFont
 
 
 
-class PlasticDetector:
+class SealDetector:
     def __init__(self, model_path, useGPU, n_fg_classes=1):
         ''' Creates a new detection model using the weights 
         stored in the file MODEL_PATH and initializes the GPU 
@@ -70,11 +70,12 @@ class PlasticDetector:
         RETURNS: IMG: a PIL image with the detected bounding boxes 
         annotated as rectangles.
         '''
+        img = img.convert('RGB')
         pred_bboxes, pred_labels, pred_scores = self._run_prediction(img)
         draw = PIL.ImageDraw.Draw(img)
         colors = [(255,0,0),(0,255,0)]
         for bbox, label, score in zip(pred_bboxes, pred_labels, pred_scores):
-            draw.rectangle(bbox[[1,0,3,2]], outline=colors[label])
+            draw.rectangle(bbox[[1,0,3,2]], outline="rgb({},{},{})".format(*colors[label]))
             #font = PIL.ImageFont.truetype("sans-serif.ttf", 16)
             #draw.text(bbox[[1,0]],"Sample Text",colors[label])
         return img
@@ -113,9 +114,9 @@ class PlasticDetector:
         return pred_bboxes
 
 if __name__ == '__main__':
-    det = PlasticDetector('checkpoints/fasterrcnn_07122125_0.5273599762268979', True)
+    det = SealDetector('./seals-detection-ir-n-large-86.0/fasterrcnn_07281142_0.8598245413189538', True)
     print('Loaded model.')
-    image_path = 'misc/demo.jpg'
+    image_path = '/data/seals/seal_data_vott/sealdata_large_IR_N/test/CHESS_FL12_C_160421_214630.573_THERM-8BIT-N.PNG'
     test_image = PIL.Image.open(image_path)
     print('Working on image {}'.format(image_path))
     print(det.predict_image(test_image, 5))
