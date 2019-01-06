@@ -19,6 +19,9 @@ sudo docker build -t sealapi -f SealDetectionAPI/Dockerfile .
 
 If you build the docker image from any other folder, you will receive an error as the relative paths in the Dockerfile
 are not correct anymore. The command will copy everything required to run the API to the docker image, including the model. 
+Please note that the build context can get very large, if you large files in the `arcticseals/src` folder, e.g. large
+model files. The command will still run just fine, but it might take very long.
+
 Now you can run the image from anywhere on your machine by executing
 
 ```
