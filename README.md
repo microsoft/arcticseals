@@ -8,8 +8,8 @@ To get write access to this repo, submit a request [here](https://github.com/org
 
 The `data` directory contains the following dataset files from NOAA: 
 
-* `train.csv` (5,256 records): Hotspot detection data for which we have all corresponding imagery data (see below). Currently all of these hotspots refer to images in dataset ArcticSealsData01.
-* `test.csv` (1,368 records): Same format and distrbution of `train.csv`, suitable for cross-validation. 
+* `train.csv` (5,110 records): Hotspot detection data for which we have all corresponding imagery data (see below). Currently all of these hotspots refer to images in dataset ArcticSealsData01.
+* `test.csv` (1,314 records): Same format and distrbution of `train.csv`, suitable for cross-validation. 
 
 Each record in the CSV files refers to a hotspot that the NOAA thermal detection system picked up and that was classified by a human into either "Animal" (true positive) or "Anomaly" (false positive). Each hotspot is unique (no duplicates). The column schema is as follows:
 
@@ -25,7 +25,7 @@ Each record in the CSV files refers to a hotspot that the NOAA thermal detection
 
 ### Raw Hotspot Data
 
-In the `data` directory there is also a `raw.csv` (15,454 records) containing all hotspot detections from the NOAA 2016 survey flights (includes more seals but also more types of animals, more anomalies, hotspots marked as duplicates, etc.). **We do not yet have the imagery corresponding to all of these hotspots, only about 2.5TB out of 19TB.**
+In the `data` directory there is also a `raw.csv` (14,910 records) containing all hotspot detections from the NOAA 2016 survey flights (includes more seals but also more types of animals, more anomalies, hotspots marked as duplicates, etc.). **We do not yet have the imagery corresponding to all of these hotspots, only about 2.5TB out of 19TB.**
 
 ## Imagery
 
@@ -44,6 +44,8 @@ The thermal data, since it's relatively small, has been combined into fewer file
 * `ArcticSealsData01_Thermal` (1GB): [tar](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData01_Thermal.tar) [vhdx](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData01_Thermal.vhdx)
 * `ArcticSealsData02-07_Thermal` (31GB): [tar](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData02-07_Thermal.tar) [vhdx](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData02-07_Thermal.vhdx)
 * `ArcticSealsData08-99_Thermal` (41GB): [tar](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData08-99_Thermal.tar) [vhdx](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData08-99_Thermal.vhdx)
+
+Our annotations provided in train.csv and test.csv only refer to images in blob 01, i.e. to ArcticSealsData01_Color.tar and ArcticSealsData01_Thermal.tar. 
 
 In Windows, you can easily mount the .vhdx files on your machine by double-clicking them.
 
@@ -70,6 +72,12 @@ Hackathon members are welcome to add whatever code you like to this repo, but pl
 * If there are dependencies that need to be installed and/or build steps that need to be performed, add any necessary code to the `build.bat` script to run the relevant package manager commands, compile steps, etc., to ensure your code is fully runnable locally.
     * Alternatively, it is also ok if your code only builds from within an IDE; if so just make a note of that in your `README.md`.
 * If applicable, add a script that runs your code to the root directory. If it takes command line arguments, please show help text if it is run without arguments.
+
+## Notes
+
+Additional notes from 10/16/2018 NOAA sync meeting.
+
+* Filename timestamps with very small millisecond values are actually for the previous second. Metadata for a given image will have the correct timestamp.
 
 # Contributing
 
