@@ -37,6 +37,10 @@ ai4e_wrapper = AI4EWrapper(app)
 # The model was copied to this location when the container was built; see ../Dockerfile
 det = sealapi.SealDetector('/app/models/seals-detection-ir-n-large-86.0/fasterrcnn_07281142_0.8598245413189538', True)
 
+# API Key, which is required to use the API
+with open('api_key.txt', 'rt') as fi:
+    api_key = fi.read().strip()
+
 # Healthcheck endpoint - this lets us quickly retrieve the status of your API.
 @app.route('/', methods=['GET'])
 def health_check():
@@ -48,6 +52,8 @@ def post():
     if not request.headers.get("Content-Type") in ACCEPTED_CONTENT_TYPES:
         print("Received file type " + request.headers.get("Content-Type"))
         return abort(415, "Unable to process request. Only png or jpeg files are accepted as input")
+    elif not api_key == request.values.get('api_key', '').strip():
+        return abort(403, 'Invalid API key')
 
     image = BytesIO(request.data)
     return ai4e_wrapper.wrap_sync_endpoint(detect, "post:detect", image_bytes=image)
