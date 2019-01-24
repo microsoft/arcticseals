@@ -25,6 +25,7 @@ COPY ./SealDetectionAPI/detection_api /app/detection_api/
 COPY ./SealDetectionRCNN /app/SealDetectionRCNN
 COPY ./SealDetectionAPI/models /app/models
 COPY ./SealDetectionAPI/supervisord.conf /etc/supervisord.conf
+COPY ./SealDetectionAPI/seals_api_key.txt /app/detection_api/seals_api_key.txt
 # startup.sh is a helper script
 COPY ./SealDetectionAPI/startup.sh /
 RUN chmod +x /startup.sh
