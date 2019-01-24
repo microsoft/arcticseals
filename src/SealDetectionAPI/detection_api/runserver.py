@@ -38,7 +38,7 @@ ai4e_wrapper = AI4EWrapper(app)
 det = sealapi.SealDetector('/app/models/seals-detection-ir-n-large-86.0/fasterrcnn_07281142_0.8598245413189538', True)
 
 # API Key, which is required to use the API
-with open('api_key.txt', 'rt') as fi:
+with open('seals_api_key.txt', 'rt') as fi:
     api_key = fi.read().strip()
 
 # Healthcheck endpoint - this lets us quickly retrieve the status of your API.
