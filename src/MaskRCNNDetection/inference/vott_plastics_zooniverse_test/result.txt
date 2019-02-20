@@ -1,0 +1,4 @@
+mAP: 0.0454
+___background___: nan
+organic         : 0.0407
+plastic         : 0.0501
