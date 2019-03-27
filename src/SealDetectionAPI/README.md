@@ -15,7 +15,7 @@ The API expects an API key, which is required to run the detection. It should be
 
 
 ## Build the docker image
-In order to build the docker image, please go to the `src` directory of the arcticseals repo, i.e.
+In order to build the docker image, go to the `src` directory of the arcticseals repo, i.e.
 `arcticseals/src`, and execute
 
 ```
