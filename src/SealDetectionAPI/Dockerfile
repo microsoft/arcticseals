@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/aiforearth/base-py:latest
+FROM mcr.microsoft.com/aiforearth/base-py:1.1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
          build-essential \
