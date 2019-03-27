@@ -49,10 +49,10 @@ This will start the docker image, but executes /bin/bash instead of the startup 
 
 ## Testing and calling the service
 
-Testing locally, the end point for detection is available at
+Testing locally, the endpoint for detection is available at
 
 ```
 http://localhost:8081/v1/detection_api/detect
 ```
 
-Please refer to the notebook `demo.ipynb` for an usage example.
+Please refer to the notebook `seal-api-demo.ipynb` for example usage.
