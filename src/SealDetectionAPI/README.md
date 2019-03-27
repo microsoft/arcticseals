@@ -3,7 +3,7 @@ This code shows how to run the seals detection as an API server and how to use t
 
 
 ## Download the model
-Copy the folder `/ai4edevfs/models/seals-detection-ir-n-large-86.0` to the `models` directory of the SealDetectionAPI folder. 
+Copy the folder `/ai4edevfs/models/seals/seals-detection-ir-n-large-86.0` to the `models` directory of the SealDetectionAPI folder. 
 This models folder will be copied to the docker image as `/app/models`. Now adjust the path to the model in 
 `detection\_api/runserver.py` to point to the correct path, e.g.
 `/app/models/seals-detection-ir-n-large-86.0/fasterrcnn_07281142_0.8598245413189538`.
