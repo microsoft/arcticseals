@@ -11,7 +11,7 @@ This models folder will be copied to the docker image as `/app/models`. Now adju
 
 ## Adding an API key
 The API expects an API key, which is required to run the detection. It should be placed in a text file located at
-`arcticseals/src/SealDetectionAPI/detection_api/api_key.txt` and passed to the server as parameter during requests.
+`arcticseals/src/SealDetectionAPI/detection_api/seals_api_key.txt` and passed to the server as parameter during requests.
 
 
 ## Build the docker image
