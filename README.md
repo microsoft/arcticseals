@@ -1,8 +1,6 @@
-# Arctic Seals Hackathon Project
+## Overview
 
-This is the workspace for the Microsoft 2018 OneWeek Hackathon project [Find Arctic Seals with Deep Learning](https://garagehackbox.azurewebsites.net/hackathons/1214/projects/70402). Other background materials (presentations, etc.) can be found in our [Arctic Seals Hackathon Team](https://teams.microsoft.com/l/team/19%3adfaf4e05a29741fe8a2dc3cf8d0c8f57%40thread.skype/conversations?groupId=6cbb37ab-68c8-408e-9e7e-a3a87706dfe5&tenantId=72f988bf-86f1-41af-91ab-2d7cd011db47).
-
-To get write access to this repo, submit a request [here](https://github.com/orgs/Microsoft/teams/arcticseals/members).
+This is the workspace for the Microsoft project [Find Arctic Seals with Deep Learning](https://garagehackbox.azurewebsites.net/hackathons/1214/projects/70402), which aims to automate the detection of arctic wildlife in aerial imagery collected by [NOAA Fisheries](https://www.fisheries.noaa.gov/).  To get write access to this repo, submit a request [here](https://github.com/orgs/Microsoft/teams/arcticseals/members).
 
 ## Data
 
@@ -29,35 +27,7 @@ In the `data` directory there is also a `raw.csv` (14,910 records) containing al
 
 ## Imagery
 
-The actual image files are located in Azure storage, grouped into datasets each containing thousands of either color or thermal images. You can get these as .tar archives or .vhdx virtual disks; each contains the same data.
-
-* `ArcticSealsData01_Color` (88GB): [tar](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData01_Color.tar) [vhdx](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData01_Color.vhdx)
-* `ArcticSealsData02_Color` (89GB): [tar](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData02_Color.tar) [vhdx](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData02_Color.vhdx)
-* `ArcticSealsData03_Color` (269GB): [tar](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData03_Color.tar) [vhdx](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData03_Color.vhdx)
-* `ArcticSealsData04_Color` (648GB): [tar](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData04_Color.tar) [vhdx](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData04_Color.vhdx)
-* `ArcticSealsData05_Color` (627GB): [tar](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData05_Color.tar) [vhdx](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData05_Color.vhdx)
-* `ArcticSealsData06_Color` (535GB): [tar](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData06_Color.tar) [vhdx](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData06_Color.vhdx)
-* `ArcticSealsData07_Color` (219GB): [tar](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData07_Color.tar) [vhdx](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData07_Color.vhdx)
-
-The thermal data, since it's relatively small, has been combined into fewer files. Note that there is more thermal data than we have corresponding color data for.
-
-* `ArcticSealsData01_Thermal` (1GB): [tar](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData01_Thermal.tar) [vhdx](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData01_Thermal.vhdx)
-* `ArcticSealsData02-07_Thermal` (31GB): [tar](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData02-07_Thermal.tar) [vhdx](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData02-07_Thermal.vhdx)
-* `ArcticSealsData08-99_Thermal` (41GB): [tar](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData08-99_Thermal.tar) [vhdx](https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData08-99_Thermal.vhdx)
-
-Our annotations provided in train.csv and test.csv only refer to images in blob 01, i.e. to ArcticSealsData01_Color.tar and ArcticSealsData01_Thermal.tar. 
-
-In Windows, you can easily mount the .vhdx files on your machine by double-clicking them.
-
-The timestamp pattern embedded in the filenames has two possible forms - you may see, for example, either `160408_020848.724` or `20160408020848.724GMT`. In all cases you should use the filename-embedded timestamp to sequence/correlate images, not whatever timestamp your file system claims.
-
-We also have the ArcticSealsData01 files as individual files in Azure storage that can be accessed as shown below. However, if you are going to do any bulk operations it's more efficient to download the tar/vhdx files.
-
-* https://arcticseals.blob.core.windows.net/imagery/ArcticSealsData01/CHESS_FL12_C_160421_221418.760_COLOR-8-BIT.JPG
-
-Finally, if you want to use [Azure Storage Explorer](https://azure.microsoft.com/en-us/features/storage-explorer) (for example) to access the entire blob container, use this connection string:
-
-`BlobEndpoint=https://arcticseals.blob.core.windows.net/;SharedAccessSignature=sv=2017-11-09&ss=b&srt=sco&sp=rl&se=2019-06-13T07:12:17Z&st=2018-06-13T23:12:17Z&spr=https&sig=2v7zAzhq2cw1%2BWseuNAKiTp5Qc4zzBclw3LqdDnANYg%3D`
+Imagery is now available publicly on [lila.science](http://lila.science/datasets/arcticseals), an open data repository for labeled images related to conservation biology.
 
 ## Code
 
@@ -65,19 +35,13 @@ The project is meant to accomodate many different approaches, frameworks, langua
 
 ### Organization
 
-Hackathon members are welcome to add whatever code you like to this repo, but please follow these guidelines:
+Team members are welcome to add whatever code you like to this repo, but please follow these guidelines:
 
 * Put your source code in its own directory inside the `src` directory.
 * Add a `README.md` file to your code directory explaining what your code does and how it works.
 * If there are dependencies that need to be installed and/or build steps that need to be performed, add any necessary code to the `build.bat` script to run the relevant package manager commands, compile steps, etc., to ensure your code is fully runnable locally.
     * Alternatively, it is also ok if your code only builds from within an IDE; if so just make a note of that in your `README.md`.
 * If applicable, add a script that runs your code to the root directory. If it takes command line arguments, please show help text if it is run without arguments.
-
-## Notes
-
-Additional notes from 10/16/2018 NOAA sync meeting.
-
-* Filename timestamps with very small millisecond values are actually for the previous second. Metadata for a given image will have the correct timestamp.
 
 # Contributing
 
