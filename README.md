@@ -2,9 +2,13 @@
 
 This is the workspace for the Microsoft project [Find Arctic Seals with Deep Learning](https://garagehackbox.azurewebsites.net/hackathons/1214/projects/70402), which aims to automate the detection of arctic wildlife in aerial imagery collected by [NOAA Fisheries](https://www.fisheries.noaa.gov/).  To get write access to this repo, submit a request [here](https://github.com/orgs/Microsoft/teams/arcticseals/members).
 
-## Data
+## Imagery
 
-The `data` directory contains the following dataset files from NOAA: 
+Imagery is now available publicly on [lila.science](http://lila.science/datasets/arcticseals), an open data repository for labeled images related to conservation biology.
+
+## Labels
+
+The `data` directory contains the following label/metadata files:
 
 * `train.csv` (5,110 records): Hotspot detection data for which we have all corresponding imagery data (see below). Currently all of these hotspots refer to images in dataset ArcticSealsData01.
 * `test.csv` (1,314 records): Same format and distrbution of `train.csv`, suitable for cross-validation. 
@@ -23,11 +27,7 @@ Each record in the CSV files refers to a hotspot that the NOAA thermal detection
 
 ### Raw Hotspot Data
 
-In the `data` directory there is also a `raw.csv` (14,910 records) containing all hotspot detections from the NOAA 2016 survey flights (includes more seals but also more types of animals, more anomalies, hotspots marked as duplicates, etc.). **We do not yet have the imagery corresponding to all of these hotspots, only about 2.5TB out of 19TB.**
-
-## Imagery
-
-Imagery is now available publicly on [lila.science](http://lila.science/datasets/arcticseals), an open data repository for labeled images related to conservation biology.
+In the `data` directory there is also a `raw.csv` (14,910 records) containing all hotspot detections from the NOAA 2016 survey flights (includes more seals but also more types of animals, more anomalies, hotspots marked as duplicates, etc.).
 
 ## Code
 
