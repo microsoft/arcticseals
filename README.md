@@ -1,6 +1,6 @@
 ## Overview
 
-This is the workspace for the a collaboration between Microsoft, [NOAA Fisheries](https://www.fisheries.noaa.gov/), and the University of Washington, aimed at automating the detection of arctic wildlife in aerial imagery.
+This is the workspace for the a collaboration between [Microsoft AI for Earth](http://aka.ms/aiforearth), [NOAA Fisheries](https://www.fisheries.noaa.gov/), and the University of Washington, aimed at automating the detection of arctic wildlife in aerial imagery.
 
 ## Imagery
 
