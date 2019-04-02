@@ -1,10 +1,12 @@
 ## Overview
 
-This is the workspace for the Microsoft project [Find Arctic Seals with Deep Learning](https://garagehackbox.azurewebsites.net/hackathons/1214/projects/70402), which aims to automate the detection of arctic wildlife in aerial imagery collected by [NOAA Fisheries](https://www.fisheries.noaa.gov/).  To get write access to this repo, submit a request [here](https://github.com/orgs/Microsoft/teams/arcticseals/members).
+This is the workspace for the a collaboration between Microsoft, [NOAA Fisheries](https://www.fisheries.noaa.gov/), and the University of Washington, aimed at automating the detection of arctic wildlife in aerial imagery.
 
 ## Imagery
 
 Imagery is now available publicly on [lila.science](http://lila.science/datasets/arcticseals), an open data repository for labeled images related to conservation biology.
+
+![alt text](http://lila.science/wp-content/uploads/2019/04/seals700.png "Seal on ice, color and thermal")
 
 ## Labels
 
