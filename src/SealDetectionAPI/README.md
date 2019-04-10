@@ -3,7 +3,7 @@ This code shows how to run the seals detection as an API server and how to use t
 
 
 ## Download the model
-Copy the folder `/ai4edevfs/models/seals-detection-ir-n-large-86.0` to the `models` directory of the SealDetectionAPI folder. 
+Copy the folder `/ai4edevfs/models/seals/seals-detection-ir-n-large-86.0` to the `models` directory of the SealDetectionAPI folder. 
 This models folder will be copied to the docker image as `/app/models`. Now adjust the path to the model in 
 `detection\_api/runserver.py` to point to the correct path, e.g.
 `/app/models/seals-detection-ir-n-large-86.0/fasterrcnn_07281142_0.8598245413189538`.
@@ -11,11 +11,11 @@ This models folder will be copied to the docker image as `/app/models`. Now adju
 
 ## Adding an API key
 The API expects an API key, which is required to run the detection. It should be placed in a text file located at
-`arcticseals/src/SealDetectionAPI/detection_api/api_key.txt` and passed to the server as parameter during requests.
+`arcticseals/src/SealDetectionAPI/detection_api/seals_api_key.txt` and passed to the server as parameter during requests.
 
 
 ## Build the docker image
-In order to build the docker image, please go to the `src` directory of the arcticseals repo, i.e.
+In order to build the docker image, go to the `src` directory of the arcticseals repo, i.e.
 `arcticseals/src`, and execute
 
 ```
@@ -49,10 +49,10 @@ This will start the docker image, but executes /bin/bash instead of the startup 
 
 ## Testing and calling the service
 
-Testing locally, the end point for detection is available at
+Testing locally, the endpoint for detection is available at
 
 ```
 http://localhost:8081/v1/detection_api/detect
 ```
 
-Please refer to the notebook `demo.ipynb` for an usage example.
+Please refer to the notebook `seal-api-demo.ipynb` for example usage.
