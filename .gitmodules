@@ -1,0 +1,3 @@
+[submodule "src/TFODAPIDetection/tf-models"]
+	path = src/TFODAPIDetection/tf-models
+	url = ai4edevelopment@vs-ssh.visualstudio.com:v3/ai4edevelopment/AI%20for%20Earth%20Development/arcticseals
