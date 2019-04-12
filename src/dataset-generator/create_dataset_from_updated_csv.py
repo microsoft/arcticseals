@@ -22,6 +22,15 @@ def find_file_in_dirs(source_dirs, filename):
             return_file = possible_file
     return return_file
 
+def convert_basename(name):
+    '''
+    Converts the old filename format CHESS_FL1_P_160408_000245.415
+    to the new one: CHESS2016_N94S_FL1_P__20160408000245.415GMT
+    '''
+    name = name[:name.rfind('_')] + name[name.rfind('_')+1:]
+    name = name[:name.rfind('_')+1] + '_20' + name[name.rfind('_')+1:] + 'GMT'
+    name = name.replace('CHESS', 'CHESS2016_N94S')
+    return name
 
 def main():
     # CSV file with all the hotspot detections
@@ -31,23 +40,26 @@ def main():
     # E.g., omnit from the file CHESS_FL12_C_160421_231526.530_COLOR-8-BIT.JPG, omnit
     # the tag _COLOR-8-BIT.JPG and put only CHESS_FL12_C_160421_231526.530 in the list
     # If None, then we'll use all image pairs from *annotation_csv*
-    image_basename_list = None # '/data/sealdata_blob01_complete/train_clean.txt'
+    image_basename_list = None #'/data/seals/seal_data_vott/sealdata_blob01_complete/test_clean.txt'
     # List of directories, where required files might be located
-    source_dirs = list(glob.glob('/data/seals/seal_data_vott/sealdata_blob01_complete/train_color')) #+ list(glob.glob('/data/seal_blobs/thermal*')) # ['/datadrive/seal_blobs/color01', '/datadrive/seal_blobs/thermal01']
+    source_dirs = ['/data/seals/seal_new/TrainingAnimals_ColorImages_00', '/data/seals/seal_new/TrainingAnimals_ColorImages_01'] #+ list(glob.glob('/data/seal_blobs/thermal*')) # ['/datadrive/seal_blobs/color01', '/datadrive/seal_blobs/thermal01']
     # List of file tags to copy for each image, normalized and registered images will
     # be generated on the fly
-    tags = ['_COLOR-8-BIT.JPG']#, '_THERM-16BIT.PNG', '_THERM-8-BIT.JPG'] # _THERM-REG-16BIT.JPG _THERM-8BIT-N.PNG 
+    tags = ['_COLOR-8-BIT.JPG']#, '_THERM-REG-16BIT.PNG'] #'_THERM-16BIT.PNG']#, '_THERM-8-BIT.JPG'] # _THERM-8BIT-N.PNG 
     # Whether to compute and store the unregsitered normalized IR image, this will be 16 bit
     store_normalized_ir = False
     # Whether to compute and store the registered IR image, this will be normalized 16 bit format
     compute_registered_ir = False
+    # Convert basename of images from the format used in the annotation_csv (old format) to the format used as actual file names (new format)
+    adjust_basename_fun = lambda x: convert_basename(x)
+    # adjust_basename_fun = lambda x: x
 
     # Required registration accuracy, if the warped IR annotations are more than
     # *registration_rej_thr* times *object_width* away from the color bounding boxes
     # we discard the image.
     reg_rejection_thr = 1
     # The folder of the output directory
-    output_dir = '/data/seals/seal_data_vott/sealdata_blob01_complete/train_color_updated'
+    output_dir = '/data2/out'
 
     os.makedirs(output_dir, exist_ok=True)
     # Read csv
@@ -68,8 +80,8 @@ def main():
             return x['hotspot_type'] in ['Evidence of Seal', 'Not Discernible', 'Animal']
         color_im_names = list(set(ann['filt_color'][ann.apply(useable_row, axis=1)].tolist()))
         im_basenames = [x[:x.rfind('_COLOR')] for x in color_im_names]
-        im_basenames = list(filter(lambda x: find_file_in_dirs(source_dirs, x + '_COLOR-8-BIT.JPG') or 
-                                             find_file_in_dirs(source_dirs, x + '_THERM-16BIT.PNG'), im_basenames))
+        im_basenames = list(filter(lambda x: find_file_in_dirs(source_dirs, adjust_basename_fun(x) + '_COLOR-8-BIT.JPG') or 
+                                             find_file_in_dirs(source_dirs, adjust_basename_fun(x) + '_THERM-16BIT.PNG'), im_basenames))
         print('Found {} images with annotations'.format(len(im_basenames)))
 
     #for im_basename in pyprind.prog_bar(im_basenames): 
@@ -77,17 +89,17 @@ def main():
         print('Working on ', im_basename)
         # Get annotations for this image
         def get_animal_hotspots(x):
-            correct_im = x['filt_thermal16'].startswith(im_basename) and \
+            correct_im = x['filt_thermal16'].startswith(im_basename) or \
                          x['filt_color'].startswith(im_basename)
             correct_type = x['hotspot_type'] in ['Evidence of Seal', 'Not Discernible', 'Animal']
             return correct_im and correct_type
         rel_ann = ann[ann.apply(get_animal_hotspots, axis=1)]
         # Write annotations
         if len(tags) < 2:
-            ann_basename = im_basename + '.'.join(tags[0].split('.')[:-1])
+            ann_basename = adjust_basename_fun(im_basename) + '.'.join(tags[0].split('.')[:-1])
         else:
-            ann_basename = im_basename
-        object_label = rel_ann['species_id']
+            ann_basename = adjust_basename_fun(im_basename)
+        object_label = rel_ann['hotspot_type'] # can use the column 'species_id' here if you do not want to merge all classes
         assert (object_label != 'Duplicate').all(), 'ERROR: This script does not handle annotation of type "Duplicate"'
         object_label.to_csv(os.path.join(output_dir, ann_basename + '.bboxes.labels.tsv'), index=False)
         object_bboxes = rel_ann[['thumb_left', 'thumb_top', 'thumb_right', 'thumb_bottom']]
@@ -97,7 +109,7 @@ def main():
         # Normalize raw image and store in *output_dir*
         if store_normalized_ir:
             in_file_n = find_file_in_dirs(source_dirs, im_basename + '_THERM-16BIT.PNG')
-            out_file_n = os.path.join(output_dir, im_basename + '_THERM-16BIT-N.PNG')
+            out_file_n = os.path.join(output_dir, adjust_basename_fun(im_basename) + '_THERM-16BIT-N.PNG')
             if in_file_n:
                 normalizer.process_file(1, False, 1, 1, in_file_n, out_file_n, 1)
             else:
@@ -109,7 +121,7 @@ def main():
         if compute_registered_ir:
             # use normalzied image as input
             in_file_ir_reg = find_file_in_dirs(source_dirs, im_basename + '_THERM-16BIT.PNG')
-            out_file_ir_reg = os.path.join(output_dir, im_basename + '_THERM-REG-16BIT.PNG')
+            out_file_ir_reg = os.path.join(output_dir, adjust_basename_fun(im_basename) + '_THERM-REG-16BIT.PNG')
             in_file_color_reg = find_file_in_dirs(source_dirs, im_basename + '_COLOR-8-BIT.JPG')
             # If we have all input files for registration
             if os.path.isfile(out_file_ir_reg):
@@ -153,7 +165,7 @@ def main():
         # Copy all images related to *im_basename* to *output_dir*
         for source_dir in source_dirs:
             for tag in tags:
-                source_file = os.path.join(source_dir, im_basename + tag)
+                source_file = os.path.join(source_dir, adjust_basename_fun(im_basename) + tag)
                 if os.path.isfile(source_file):
                     shutil.copy(source_file, output_dir)
 
