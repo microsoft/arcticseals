@@ -5,6 +5,9 @@
 # You can directly compare two files using:
 #   diff <(python reformat.py pipeline1.config) <(python reformat.py pipeline2.config)
 
+# Remember to put the models/research directory in your PYTHONPATH before calling
+# the script
+
 from object_detection.protos import pipeline_pb2
 import google.protobuf.text_format as txtf
 import sys
